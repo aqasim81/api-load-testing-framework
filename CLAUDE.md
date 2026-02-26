@@ -118,7 +118,7 @@ uv run pre-commit run --all-files
 
 - [x] Phase 0: Code quality infrastructure
 - [x] Phase 1: Foundation + Scenario DSL
-- [ ] Phase 2: Traffic Patterns
+- [x] Phase 2: Traffic Patterns
 - [ ] Phase 3: Single-Worker Engine
 - [ ] Phase 4: Multi-Worker Distribution
 - [ ] Phase 5: CLI Interface
