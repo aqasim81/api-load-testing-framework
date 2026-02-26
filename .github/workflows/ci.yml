@@ -1,0 +1,162 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_CACHE_DIR: /tmp/.uv-cache
+  FORCE_COLOR: "1"
+
+jobs:
+  # ==========================================================================
+  # Job 0: Secret Scanning (~10 seconds)
+  # ==========================================================================
+  secrets:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ==========================================================================
+  # Job 1: Format + Lint (~15 seconds)
+  # ==========================================================================
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Check formatting
+        run: uv run ruff format --check src/ tests/
+
+      - name: Run linter
+        run: uv run ruff check src/ tests/
+
+  # ==========================================================================
+  # Job 2: Type checking (~45 seconds)
+  # ==========================================================================
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Run mypy
+        run: uv run mypy src/
+
+      - name: Count type:ignore comments
+        run: |
+          count=$(grep -r "type: ignore" src/ --include="*.py" | wc -l | tr -d ' ')
+          echo "Found $count type: ignore comments"
+          if [ "$count" -gt 10 ]; then
+            echo "::error::Too many type: ignore comments ($count). Maximum allowed: 10."
+            echo "Each type: ignore must have an error code: # type: ignore[specific-error]"
+            exit 1
+          fi
+
+  # ==========================================================================
+  # Job 3: Tests + Coverage (matrix across Python versions)
+  # ==========================================================================
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Run unit tests with coverage
+        run: |
+          uv run pytest tests/unit/ \
+            -v \
+            --cov=loadforge \
+            --cov-branch \
+            --cov-report=term-missing \
+            --cov-report=json:coverage.json \
+            --cov-report=html:htmlcov \
+            --cov-fail-under=80 \
+            -m "not slow"
+
+      - name: Run integration tests
+        run: |
+          uv run pytest tests/integration/ \
+            -v \
+            --timeout=60
+
+      - name: Upload coverage report
+        if: matrix.python-version == '3.12' && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            coverage.json
+            htmlcov/
+
+  # ==========================================================================
+  # Job 4: All checks passed (branch protection target)
+  # ==========================================================================
+  ci-passed:
+    name: CI Passed
+    needs: [secrets, lint, typecheck, test]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check all jobs
+        run: |
+          if [[ "${{ needs.secrets.result }}" != "success" ]] || \
+             [[ "${{ needs.lint.result }}" != "success" ]] || \
+             [[ "${{ needs.typecheck.result }}" != "success" ]] || \
+             [[ "${{ needs.test.result }}" != "success" ]]; then
+            echo "One or more CI jobs failed."
+            exit 1
+          fi
+          echo "All CI checks passed."
