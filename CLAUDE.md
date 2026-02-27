@@ -1,7 +1,5 @@
 # LoadForge — Development Guide
 
-## Project
-
 LoadForge — Python load testing framework with realistic traffic patterns,
 a live React dashboard, and interactive HTML reports.
 
@@ -23,199 +21,89 @@ a live React dashboard, and interactive HTML reports.
 
 ## Stack
 
-| Component | Technology | Notes |
-|-----------|-----------|-------|
-| Language | Python 3.12+ | PEP 561 typed package |
-| Package manager | `uv` | Fast, replaces pip/poetry |
-| Async HTTP | `aiohttp` + `uvloop` | Falls back to asyncio on Windows |
-| Multi-core | `multiprocessing` + `shared_memory` | Worker distribution |
-| CLI | `typer` + `rich` | Phase 5 |
-| Dashboard backend | `FastAPI` + `uvicorn` | Phase 7 |
-| Dashboard frontend | React 18 + Recharts | Phase 7 |
-| Reports | `plotly` + `jinja2` | Phase 6 |
-| Statistics | `numpy` + `hdrhistogram` | Percentile-accurate metrics |
-| Linter/Formatter | `ruff` | Format + lint in one tool |
-| Type checker | `mypy` (strict) | Zero `Any` types |
-| Testing | `pytest` + `pytest-asyncio` | Auto mode for async tests |
-
-## Directory Structure
-
-```
-api_load_testing_framework/
-├── src/loadforge/                  # Main Python package
-│   ├── __init__.py
-│   ├── _internal/                  # Private utilities
-│   │   ├── config.py               # Configuration loading (env vars)
-│   │   ├── errors.py               # Custom exception hierarchy
-│   │   ├── logging.py              # Structured logging setup
-│   │   └── types.py                # Shared type aliases
-│   ├── dsl/                        # Scenario definition language
-│   │   ├── decorators.py           # @scenario and @task decorators
-│   │   ├── http_client.py          # HTTP client with RequestMetric
-│   │   ├── loader.py               # Scenario file loading
-│   │   └── scenario.py             # Scenario model and execution
-│   ├── engine/                     # Load generation engine
-│   │   ├── rate_limiter.py         # Request rate limiting
-│   │   ├── scheduler.py            # Virtual user scheduling
-│   │   ├── session.py              # Test session orchestration
-│   │   └── worker.py               # Worker process management
-│   ├── metrics/                    # Metrics collection
-│   │   ├── collector.py            # Metric aggregation logic
-│   │   └── models.py               # EndpointMetrics, MetricSnapshot, TestResult
-│   └── patterns/                   # Traffic pattern generators
-│       ├── base.py                 # Abstract base pattern
-│       ├── composite.py            # Combine multiple patterns
-│       ├── constant.py             # Constant VU pattern
-│       ├── diurnal.py              # Sine wave (day/night) pattern
-│       ├── ramp.py                 # Linear ramp-up pattern
-│       ├── spike.py                # Sudden spike pattern
-│       └── step.py                 # Step-wise increase pattern
-├── tests/
-│   ├── conftest.py                 # Shared fixtures, echo server, free port helper
-│   ├── unit/                       # Fast tests, no I/O (< 100ms each)
-│   ├── integration/                # Tests with real I/O (echo server)
-│   └── e2e/                        # Full test runs (Phase 7+)
-├── dashboard/                      # React frontend source (Phase 7)
-├── pyproject.toml                  # Project config, dependencies, tool settings
-├── Makefile                        # validate, fmt, lint, typecheck, test targets
-└── .github/workflows/ci.yml       # CI pipeline
-```
+Core: Python 3.12+ (PEP 561 typed), `uv` package manager
+Async: `aiohttp` + `uvloop` (asyncio fallback on Windows)
+Multi-core: `multiprocessing` + `shared_memory`
+CLI: `typer` + `rich` (Phase 5)
+Dashboard: `FastAPI` + `uvicorn` backend, React 18 + Recharts frontend (Phase 7)
+Reports: `plotly` + `jinja2` (Phase 6)
+Stats: `numpy` + `hdrhistogram` (percentile-accurate metrics)
+Quality: `ruff` (format + lint), `mypy` strict, `pytest` + `pytest-asyncio` (auto mode)
 
 ## Commands
 
 ```bash
-# Install all dependencies (including dev)
-uv sync --all-extras
-
-# --- Quality checks (fastest first) ---
-uv run ruff format --check src/ tests/     # Format check (~2s)
-uv run ruff check src/ tests/              # Lint (~3s)
-uv run mypy src/                           # Type check (~15-45s)
-uv run pytest tests/unit/ -v --cov=loadforge --cov-branch --cov-fail-under=80  # Tests + coverage
-
-# --- Auto-fix ---
-uv run ruff format src/ tests/             # Format (modifies files)
-uv run ruff check --fix src/ tests/        # Lint with auto-fix
-
-# --- Run all checks before committing ---
-make validate
-
-# --- Run specific test suites ---
-uv run pytest tests/unit/ -v               # Unit tests only
-uv run pytest tests/integration/ -v        # Integration tests only
-uv run pytest -v                           # All tests
-
-# Pre-commit hooks
-uv run pre-commit run --all-files
+uv sync --all-extras                    # Install all deps
+make validate                           # Run ALL checks before committing
+uv run ruff format src/ tests/          # Auto-format
+uv run ruff check --fix src/ tests/     # Lint with auto-fix
+uv run mypy src/                        # Type check
+uv run pytest tests/unit/ -v --cov=loadforge --cov-branch --cov-fail-under=80
+uv run pytest tests/integration/ -v     # Integration tests
 ```
 
 ## Architecture
 
-Key points:
-- `src/loadforge/` is the main Python package (PEP 561 typed)
-- `_internal/` holds config, errors, logging, types — not part of public API
-- `dsl/` defines how users write scenarios (`@scenario`, `@task` decorators)
-- `engine/` runs the load test: scheduler creates virtual users, rate limiter throttles, session orchestrates lifecycle
-- `metrics/` collects and aggregates request metrics into snapshots and final results
-- `patterns/` generates virtual user counts over time (ramp, spike, step, diurnal, composite)
-- `dashboard/` is the React frontend source (Phase 7); built assets go to `src/loadforge/dashboard/static/`
-- `tests/` mirrors `src/` structure: `unit/`, `integration/`, `e2e/`
+- `src/loadforge/` — main package (PEP 561 typed)
+- `_internal/` — config, errors, logging, types — NOT public API
+- `dsl/` — scenario definition: `@scenario` and `@task` decorators, HTTP client with `RequestMetric`, scenario file loading
+- `engine/` — load generation: scheduler creates virtual users, rate limiter throttles, session orchestrates full lifecycle
+- `metrics/` — collects request metrics → `EndpointMetrics` → `MetricSnapshot` → `TestResult`
+- `patterns/` — VU count generators over time (ramp, spike, step, diurnal, constant, composite)
+- `dashboard/` — React frontend source (Phase 7); built assets → `src/loadforge/dashboard/static/`
+- Tests mirror src structure: `tests/unit/`, `tests/integration/`, `tests/e2e/`
 
 ## Coding Conventions
 
-### General
-- `from __future__ import annotations` at the top of EVERY Python file (ruff enforces this)
-- Use `X | Y` union syntax, not `Union[X, Y]` or `Optional[X]`
-- Use `Path` from pathlib, never `os.path`
-- Custom exceptions inherit from `LoadForgeError` (defined in `_internal/errors.py`)
-
-### Type Safety
-- ZERO `Any` types in source code. If a library returns `Any`, cast it immediately.
-- ZERO bare `# type: ignore`. Always specify the error code: `# type: ignore[assignment]`
-- All public functions and methods MUST have full type annotations
-- All dataclasses MUST annotate every field
-
-### Async
-- All I/O-bound operations MUST be async
-- Never call `time.sleep()` in async code — use `asyncio.sleep()`
-- Never call blocking I/O (file reads, subprocess) in async code — use `asyncio.to_thread()`
-- Always use `async with` for aiohttp sessions and responses
-- Use `asyncio.TaskGroup` (Python 3.11+) instead of `gather()` where appropriate
-
-### Docstrings
-- Google-style docstrings on all public classes, methods, and functions
-- Include `Args:`, `Returns:`, `Raises:` sections where applicable
+- `from __future__ import annotations` at the top of EVERY file (ruff enforces)
+- `X | Y` union syntax, never `Union` or `Optional`
+- `Path` from pathlib, never `os.path`
+- Google-style docstrings on all public classes/methods/functions with `Args:`, `Returns:`, `Raises:`
 - Module-level docstrings on every non-`__init__.py` file
 
-## Error Handling
+### Type Safety
+- ZERO `Any` types — if a library returns `Any`, cast immediately
+- ZERO bare `# type: ignore` — always specify error code: `# type: ignore[assignment]`
+- All public functions/methods and dataclass fields MUST have full annotations
 
-- Return result types in business logic; never throw for expected failures
+### Async Rules
+- All I/O-bound operations MUST be async
+- Never `time.sleep()` in async — use `asyncio.sleep()`
+- Never blocking I/O in async — use `asyncio.to_thread()`
+- Always `async with` for aiohttp sessions/responses
+- Prefer `asyncio.TaskGroup` over `gather()`
+
+### Error Handling
+- Result types in business logic; never throw for expected failures
 - Custom exceptions inherit from `LoadForgeError` (`_internal/errors.py`)
-- Exception hierarchy:
-  - `LoadForgeError` — base for all LoadForge errors
-  - `ScenarioError` — invalid scenario definition (missing tasks, non-coroutine methods, bad files)
-  - `ConfigError` — invalid or missing configuration (bad env vars, values out of range)
-  - `EngineError` — engine runtime failures (worker crash, session lifecycle errors)
-- Use specific exceptions in `except` blocks; never bare `except Exception:`
-- Re-raise unknown exceptions; only catch what you can handle
+- Hierarchy: `LoadForgeError` → `ScenarioError` | `ConfigError` | `EngineError`
+- Specific `except` blocks only; never bare `except Exception:` without re-raise
 
 ## Testing
 
-- **80% minimum coverage** on business logic (enforced by `--cov-fail-under=80` in both `make validate` and CI)
-- **CI pipeline** (`.github/workflows/ci.yml`): runs lint, type check, unit tests with coverage, integration tests on Python 3.12 and 3.13
-- Every public function/method gets at least one test
-- Tests live in `tests/unit/`, `tests/integration/`, `tests/e2e/`
-- Unit tests: no I/O, no network, fast (< 100ms each)
-- Integration tests: use the echo server fixture from `conftest.py`
-- Async tests: use `async def test_...` — pytest-asyncio handles it (auto mode)
-- Name tests: `test_<function_name>_<scenario>` (e.g., `test_ramp_pattern_increases_linearly`)
+- **80% minimum coverage** on business logic (enforced in `make validate` and CI)
+- CI runs lint, type check, unit tests + coverage, integration tests on Python 3.12 and 3.13
+- Unit tests: no I/O, no network, < 100ms each
+- Integration tests: use echo server fixture from `conftest.py`
+- Async tests: `async def test_...` — pytest-asyncio auto mode handles it
+- Naming: `test_<function_name>_<scenario>`
 - Hardcoded ports forbidden — use `_get_free_port()` from `conftest.py`
 
 ## Security
 
-- NEVER hardcode secrets, API keys, tokens, or passwords in source code
-- All sensitive configuration MUST use environment variables (see `.env.example`)
-- Configuration is loaded via `_internal/config.py` using `os.environ.get()`
-- `.gitignore` excludes `.env*`, `*.pem`, `*.key`, `secrets.toml`
-- Pre-commit: Gitleaks scans for leaked secrets before every commit
-- CI: Gitleaks GitHub Action scans full history on every push/PR
-- Ruff Bandit rules (`S` prefix) flag hardcoded secrets in linting
-- Tests must use fake/mock credentials (e.g., `"test-token-12345"`), never real ones
-- When adding new configuration, add the env var to `.env.example` with a comment
+- Never hardcode secrets/keys/tokens — use environment variables via `_internal/config.py`
+- Add new env vars to `.env.example` with a comment
+- Gitleaks runs in pre-commit hooks and CI (full history scan)
+- Tests must use fake credentials (e.g., `"test-token-12345"`)
 
-## Git Workflow
+## Git & Session Workflow
 
 - Conventional commits: `feat:`, `fix:`, `chore:`, `docs:`, `test:`, `refactor:`
-- One commit per logical change
-- Run `make validate` before every commit
+- One commit per logical change; run `make validate` before every commit
 - Pre-commit hooks enforce formatting, linting, and secret scanning
-
-## Anti-Patterns to AVOID
-
-- `import *` — never
-- Mutable default arguments — ruff B006 catches this
-- `except Exception:` without re-raising — always handle specifically or re-raise
-- `# type: ignore` without an error code
-- `Any` in type annotations
-- `time.sleep()` in async code
-- `print()` for logging — use structured logging
-- Global mutable state — pass dependencies explicitly
-- Hardcoded ports in tests — use `_get_free_port()` from conftest
-- Hardcoded secrets, API keys, or tokens — use environment variables
-
-## Session Workflow
-
-- One task per conversation — break large features into: schema → service → API → tests → integration
-- Use `/clear` between major tasks to reset context
-- Use `/compact` when context is long but you need continuity
-- Commit after each working chunk; never let a session run for hours without committing
-- Run `make validate` before every commit
-- Read this CLAUDE.md at the start of every session for current status and conventions
+- One task per conversation; use `/clear` between major tasks
+- Commit after each working chunk; never run hours without committing
 
 ## References
 
-- `projects/.claude/CLAUDE.md` — global code quality standards (TypeScript, Python, Git)
-- `plans/implementation_plan.md` — architecture, phased plan, risk register
-- `plans/phases/` — detailed phase plans with acceptance criteria
-- `plans/checklist.md` — phase-by-phase progress tracking
-- `.github/workflows/ci.yml` — CI pipeline configuration
+`plans/implementation_plan.md` (architecture, risk register) | `plans/phases/` (phase details) | `plans/checklist.md` (progress) | `.github/workflows/ci.yml` (CI config)
