@@ -46,7 +46,7 @@
 - [x] **Test** — Run `make validate` (format, lint, typecheck, unit tests)
 - [x] **Fix issues** — Address any failures from validation or review
 - [x] **Update checklist** — Mark completed items above; update CLAUDE.md "Current Status"
-- [ ] **Ready for next phase** — All criteria met, proceed to Phase 3
+- [x] **Ready for next phase** — All criteria met, proceed to Phase 3
 
 ---
 
@@ -55,13 +55,13 @@
 > [Detailed plan](./phases/phase-3-single-worker-engine.md) |
 > Dependencies: Phase 1, Phase 2
 
-- [ ] **Plan** — Review [phase plan](./phases/phase-3-single-worker-engine.md) and the relevant sections of [implementation_plan.md](./implementation_plan.md)
-- [ ] **Review plan** — Confirm scope, file list, and acceptance criteria are clear; adjust if needed
-- [ ] **Implement** — Build all files listed in the phase plan
-- [ ] **Review implementation** — Code review: types, docstrings, error handling, conventions per CLAUDE.md
-- [ ] **Test** — Run `make validate` + `uv run pytest tests/integration/ -v`
-- [ ] **Fix issues** — Address any failures from validation or review
-- [ ] **Update checklist** — Mark completed items above; update CLAUDE.md "Current Status"
+- [x] **Plan** — Review [phase plan](./phases/phase-3-single-worker-engine.md) and the relevant sections of [implementation_plan.md](./implementation_plan.md)
+- [x] **Review plan** — Confirm scope, file list, and acceptance criteria are clear; adjust if needed
+- [x] **Implement** — Build all files listed in the phase plan
+- [x] **Review implementation** — Code review: types, docstrings, error handling, conventions per CLAUDE.md
+- [x] **Test** — Run `make validate` + `uv run pytest tests/integration/ -v`
+- [x] **Fix issues** — Address any failures from validation or review
+- [x] **Update checklist** — Mark completed items above; update CLAUDE.md "Current Status"
 - [ ] **Ready for next phase** — All criteria met, proceed to Phase 4
 
 ---

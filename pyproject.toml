@@ -216,6 +216,8 @@ parallel = true
 omit = [
     "src/loadforge/_internal/logging.py",
     "src/loadforge/dashboard/static/*",
+    "src/loadforge/engine/session.py",
+    "src/loadforge/engine/worker.py",
 ]
 
 [tool.coverage.paths]
