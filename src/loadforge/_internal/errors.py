@@ -29,3 +29,13 @@ class ConfigError(LoadForgeError):
         - Required environment variable has an invalid value.
         - Configuration value is out of acceptable range.
     """
+
+
+class EngineError(LoadForgeError):
+    """Raised when the load generation engine encounters an error.
+
+    Examples:
+        - Worker fails to start the event loop.
+        - Virtual user encounters an unrecoverable error.
+        - Session lifecycle transition fails.
+    """
