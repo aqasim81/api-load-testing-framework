@@ -96,15 +96,6 @@ class TestSession:
         """Return the number of active virtual users."""
         return len(self._user_tasks)
 
-    @property
-    def _is_stopping(self) -> bool:
-        """Check if the session is stopping.
-
-        Uses a property to prevent mypy from narrowing the enum type,
-        since signal handlers can change ``_state`` asynchronously.
-        """
-        return self._state == SessionState.STOPPING
-
     async def run(self) -> TestResult:
         """Execute the full test session lifecycle.
 
@@ -169,15 +160,16 @@ class TestSession:
                     snapshot.total_errors,
                 )
 
-        except Exception:
+        except Exception as exc:
             self._state = SessionState.FAILED
             logger.exception("Test session failed")
-            raise EngineError("Test session failed") from None
+            raise EngineError("Test session failed") from exc
         finally:
             # Graceful shutdown
             if self._state != SessionState.FAILED:
                 self._state = SessionState.STOPPING
             await self._shutdown_all_users()
+            self._remove_signal_handlers()
 
         end_time = time.monotonic()
         total_duration = end_time - start_time
@@ -361,3 +353,13 @@ class TestSession:
             # Windows doesn't support add_signal_handler
             signal.signal(signal.SIGINT, lambda _s, _f: _signal_handler())
             signal.signal(signal.SIGTERM, lambda _s, _f: _signal_handler())
+
+    def _remove_signal_handlers(self) -> None:
+        """Remove custom signal handlers, restoring defaults."""
+        if sys.platform != "win32":
+            loop = asyncio.get_running_loop()
+            for sig in (signal.SIGINT, signal.SIGTERM):
+                loop.remove_signal_handler(sig)
+        else:
+            signal.signal(signal.SIGINT, signal.default_int_handler)
+            signal.signal(signal.SIGTERM, signal.SIG_DFL)

@@ -18,62 +18,35 @@ from loadforge.metrics.models import EndpointMetrics, MetricSnapshot
 logger = get_logger("metrics.collector")
 
 
+_OVERALL_QUANTILES = (50.0, 75.0, 90.0, 95.0, 99.0, 99.9)
+_ENDPOINT_QUANTILES = (50.0, 75.0, 90.0, 95.0, 99.0)
+
+
 def _compute_percentiles(
     latencies: list[float],
-) -> tuple[float, float, float, float, float, float, float, float, float]:
-    """Compute latency percentiles from a list of latency values.
+    quantiles: tuple[float, ...] = _OVERALL_QUANTILES,
+) -> tuple[float, float, float, list[float]]:
+    """Compute min, max, avg, and percentile values for latencies.
 
     Args:
-        latencies: List of latency values in milliseconds.
+        latencies: Latency values in milliseconds.
+        quantiles: Percentile points to compute. Defaults to overall
+            quantiles (p50 through p999).
 
     Returns:
-        Tuple of (min, max, avg, p50, p75, p90, p95, p99, p999).
+        Tuple of (min, max, avg, [percentile values]).
     """
     if not latencies:
-        return (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+        return (0.0, 0.0, 0.0, [0.0] * len(quantiles))
 
     arr = np.array(latencies, dtype=np.float64)
-    percentiles = np.percentile(arr, [50.0, 75.0, 90.0, 95.0, 99.0, 99.9])
+    pcts = np.percentile(arr, list(quantiles))
 
     return (
         float(np.min(arr)),
         float(np.max(arr)),
         float(np.mean(arr)),
-        float(percentiles[0]),
-        float(percentiles[1]),
-        float(percentiles[2]),
-        float(percentiles[3]),
-        float(percentiles[4]),
-        float(percentiles[5]),
-    )
-
-
-def _compute_endpoint_percentiles(
-    latencies: list[float],
-) -> tuple[float, float, float, float, float, float, float, float]:
-    """Compute endpoint-level latency percentiles (no p999).
-
-    Args:
-        latencies: List of latency values in milliseconds.
-
-    Returns:
-        Tuple of (min, max, avg, p50, p75, p90, p95, p99).
-    """
-    if not latencies:
-        return (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-
-    arr = np.array(latencies, dtype=np.float64)
-    percentiles = np.percentile(arr, [50.0, 75.0, 90.0, 95.0, 99.0])
-
-    return (
-        float(np.min(arr)),
-        float(np.max(arr)),
-        float(np.mean(arr)),
-        float(percentiles[0]),
-        float(percentiles[1]),
-        float(percentiles[2]),
-        float(percentiles[3]),
-        float(percentiles[4]),
+        [float(p) for p in pcts],
     )
 
 
@@ -100,6 +73,8 @@ class MetricCollector:
         """
         self.worker_id = worker_id
         self._buffer: deque[RequestMetric] = deque()
+        # TODO(phase-4): Replace _all_metrics list with HdrHistogram for O(1)
+        # memory cumulative tracking. Current list grows with request count.
         self._all_metrics: list[RequestMetric] = []
         self._last_flush_time: float = time.monotonic()
 
@@ -234,17 +209,8 @@ class MetricCollector:
                     errors_by_type[error_type] += 1
 
         # Overall percentiles
-        (
-            lat_min,
-            lat_max,
-            lat_avg,
-            lat_p50,
-            lat_p75,
-            lat_p90,
-            lat_p95,
-            lat_p99,
-            lat_p999,
-        ) = _compute_percentiles(all_latencies)
+        lat_min, lat_max, lat_avg, lat_pcts = _compute_percentiles(all_latencies)
+        lat_p50, lat_p75, lat_p90, lat_p95, lat_p99, lat_p999 = lat_pcts
 
         total_requests = len(metrics)
         error_rate = total_errors / total_requests if total_requests > 0 else 0.0
@@ -256,16 +222,10 @@ class MetricCollector:
             ep_errors = sum(1 for m in ep_metrics if m.error is not None or m.status_code >= 400)
             ep_count = len(ep_metrics)
 
-            (
-                ep_min,
-                ep_max,
-                ep_avg,
-                ep_p50,
-                ep_p75,
-                ep_p90,
-                ep_p95,
-                ep_p99,
-            ) = _compute_endpoint_percentiles(ep_latencies)
+            ep_min, ep_max, ep_avg, ep_pcts = _compute_percentiles(
+                ep_latencies, _ENDPOINT_QUANTILES
+            )
+            ep_p50, ep_p75, ep_p90, ep_p95, ep_p99 = ep_pcts
 
             endpoints[name] = EndpointMetrics(
                 name=name,

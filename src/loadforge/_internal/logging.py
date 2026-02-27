@@ -55,8 +55,10 @@ def setup_logging(
     logger = logging.getLogger("loadforge")
     logger.setLevel(level)
 
-    # Idempotent: skip if handlers already attached
+    # Idempotent: update existing handler levels and return early
     if logger.handlers:
+        for handler in logger.handlers:
+            handler.setLevel(level)
         return logger
 
     handler = logging.StreamHandler(sys.stderr)
