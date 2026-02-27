@@ -48,9 +48,9 @@ dev = [
 loadforge = "loadforge.cli.app:app"
 
 [project.urls]
-Homepage = "https://github.com/github-builder/loadforge"
-Repository = "https://github.com/github-builder/loadforge"
-Issues = "https://github.com/github-builder/loadforge/issues"
+Homepage = "https://github.com/aqasim81/api-load-testing-framework"
+Repository = "https://github.com/aqasim81/api-load-testing-framework"
+Issues = "https://github.com/aqasim81/api-load-testing-framework/issues"
 
 [build-system]
 requires = ["hatchling"]

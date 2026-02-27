@@ -54,3 +54,8 @@ results/
 
 # uv
 .python-version
+
+# Project-specific config & plans
+CLAUDE.md
+.claude/
+plans/
