@@ -76,6 +76,7 @@ class MetricCollector:
         # TODO(phase-4): Replace _all_metrics list with HdrHistogram for O(1)
         # memory cumulative tracking. Current list grows with request count.
         self._all_metrics: list[RequestMetric] = []
+        self._last_drained: list[RequestMetric] = []
         self._last_flush_time: float = time.monotonic()
 
     @property
@@ -117,8 +118,9 @@ class MetricCollector:
         while self._buffer:
             drained.append(self._buffer.popleft())
 
-        # Track cumulative state
+        # Track cumulative state and save for get_drained_metrics()
         self._all_metrics.extend(drained)
+        self._last_drained = drained
 
         # Compute interval duration for RPS
         now = time.monotonic()
@@ -131,6 +133,18 @@ class MetricCollector:
             active_users=active_users,
             interval=interval,
         )
+
+    def get_drained_metrics(self) -> list[RequestMetric]:
+        """Return the metrics drained by the most recent ``flush()`` call.
+
+        This is used by multi-worker mode to forward raw metrics to the
+        aggregator. The returned list is the same object stored internally;
+        callers should not mutate it.
+
+        Returns:
+            List of RequestMetric objects from the last flush.
+        """
+        return self._last_drained
 
     def get_cumulative_snapshot(
         self,
@@ -160,6 +174,7 @@ class MetricCollector:
         """Clear all internal state. Primarily for testing."""
         self._buffer.clear()
         self._all_metrics.clear()
+        self._last_drained.clear()
         self._last_flush_time = time.monotonic()
 
     def _build_snapshot(
