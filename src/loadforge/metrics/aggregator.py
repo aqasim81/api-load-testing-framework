@@ -171,7 +171,8 @@ class MetricAggregator:
             while True:
                 try:
                     batch: list[RequestMetric] = q.get_nowait()
-                except (queue.Empty, EOFError):
+                except (queue.Empty, EOFError, ValueError, OSError):
+                    # ValueError/OSError: queue was closed during shutdown
                     break
                 self._process_batch(batch)
 

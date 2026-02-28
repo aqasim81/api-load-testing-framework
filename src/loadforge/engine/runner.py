@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 from loadforge._internal.errors import EngineError
 from loadforge._internal.logging import get_logger, setup_logging
 from loadforge.dsl.loader import load_scenario
+from loadforge.dsl.scenario import registry
 from loadforge.engine.coordinator import Coordinator
 from loadforge.engine.scheduler import Scheduler
 from loadforge.metrics.aggregator import MetricAggregator
@@ -105,6 +106,10 @@ class LoadTestRunner:
             EngineError: If the test fails to execute.
         """
         setup_logging(level=self._log_level)
+
+        # Clear registry to avoid duplicate registration when loading
+        # the same scenario file multiple times (e.g., in tests)
+        registry.clear()
 
         # Load scenario for metadata
         scenario = load_scenario(self.scenario_path)

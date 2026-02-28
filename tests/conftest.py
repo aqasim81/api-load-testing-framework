@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import asyncio
 import socket
+import threading
 from typing import TYPE_CHECKING
 
 import pytest
 from aiohttp import web
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator
+    from collections.abc import AsyncIterator, Iterator
     from pathlib import Path
 
 
@@ -156,4 +157,86 @@ class TestScenario:
 """
     path = tmp_path / "test_scenario.py"
     path.write_text(scenario_code)
+    return path
+
+
+# =============================================================================
+# Sync fixtures for multiprocessing tests (Phase 4)
+# =============================================================================
+
+
+def _run_echo_server_in_thread(port: int, started: threading.Event) -> asyncio.AbstractEventLoop:
+    """Run an aiohttp echo server in a background thread."""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    app = _create_echo_app()
+    runner = web.AppRunner(app)
+    loop.run_until_complete(runner.setup())
+    site = web.TCPSite(runner, "127.0.0.1", port)
+    loop.run_until_complete(site.start())
+    started.set()
+    loop.run_forever()
+    loop.run_until_complete(runner.cleanup())
+    loop.close()
+    return loop
+
+
+@pytest.fixture
+def sync_echo_server() -> Iterator[str]:
+    """Echo server running in a background thread for sync tests.
+
+    Useful for multiprocessing integration tests where the runner
+    blocks the main thread.
+    """
+    port = _get_free_port()
+    started = threading.Event()
+    loop_holder: list[asyncio.AbstractEventLoop] = []
+
+    def _thread_target() -> None:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        app = _create_echo_app()
+        runner = web.AppRunner(app)
+        loop.run_until_complete(runner.setup())
+        site = web.TCPSite(runner, "127.0.0.1", port)
+        loop.run_until_complete(site.start())
+        loop_holder.append(loop)
+        started.set()
+        loop.run_forever()
+        loop.run_until_complete(runner.cleanup())
+        loop.close()
+
+    thread = threading.Thread(target=_thread_target, daemon=True)
+    thread.start()
+    started.wait(timeout=5.0)
+
+    yield f"http://127.0.0.1:{port}"
+
+    if loop_holder:
+        loop_holder[0].call_soon_threadsafe(loop_holder[0].stop)
+    thread.join(timeout=5.0)
+
+
+@pytest.fixture
+def scenario_file(tmp_path: Path, sync_echo_server: str) -> Path:
+    """Create a temporary scenario file pointing at the sync echo server."""
+    code = f'''\
+from __future__ import annotations
+
+from loadforge import scenario, task, HttpClient
+
+
+@scenario(
+    name="Integration Test Scenario",
+    base_url="{sync_echo_server}",
+    think_time=(0.01, 0.02),
+)
+class TestScenario:
+
+    @task(weight=1)
+    async def get_echo(self, client: HttpClient) -> None:
+        await client.get("/echo/test", name="Echo Test")
+'''
+    path = tmp_path / "test_scenario.py"
+    path.write_text(code)
     return path
