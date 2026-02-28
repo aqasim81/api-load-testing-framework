@@ -35,4 +35,3 @@ def dashboard_cmd(
         f"  results_dir: {results_dir}\n"
         f"  port: {port}",
     )
-    raise typer.Exit(code=0)

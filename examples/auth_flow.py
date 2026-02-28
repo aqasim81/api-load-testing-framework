@@ -26,7 +26,7 @@ class AuthFlowScenario:
         """Log in and store the auth token for this virtual user."""
         resp = await client.post(
             "/auth/login",
-            json={"email": "test@example.com", "password": "secret"},
+            json={"email": "test@example.com", "password": "test-password-12345"},  # noqa: S106
             name="Login",
         )
         data = await resp.json()

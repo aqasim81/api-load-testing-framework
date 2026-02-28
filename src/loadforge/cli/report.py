@@ -35,4 +35,3 @@ def report_cmd(
         f"  results_dir: {results_dir}\n"
         f"  format: {fmt}",
     )
-    raise typer.Exit(code=0)

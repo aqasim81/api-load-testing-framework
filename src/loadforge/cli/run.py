@@ -54,7 +54,38 @@ def _build_pattern(
         Configured LoadPattern instance.
 
     Raises:
-        typer.BadParameter: If required flags for the chosen pattern are missing.
+        typer.BadParameter: If required flags for the chosen pattern are missing
+            or if the pattern constructor rejects the arguments.
+    """
+    try:
+        return _create_pattern(pattern_name, users, duration, ramp_to, step_size, step_duration)
+    except LoadForgeError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+
+
+def _create_pattern(
+    pattern_name: str,
+    users: int,
+    duration: float,
+    ramp_to: int | None,
+    step_size: int | None,
+    step_duration: float | None,
+) -> LoadPattern:
+    """Create a pattern instance, raising LoadForgeError on invalid args.
+
+    Args:
+        pattern_name: Pattern type name.
+        users: Base / start user count.
+        duration: Total test duration in seconds.
+        ramp_to: Target users for ramp pattern.
+        step_size: Users added per step.
+        step_duration: Seconds per step.
+
+    Returns:
+        Configured LoadPattern instance.
+
+    Raises:
+        typer.BadParameter: If required flags are missing.
     """
     if pattern_name == "constant":
         return ConstantPattern(users=users)
@@ -258,18 +289,19 @@ def run_cmd(
         "--workers",
         "-w",
         help="Number of worker processes (default: CPU count).",
+        min=1,
     ),
     output: Path = typer.Option(
         Path("./results"),
         "--output",
         "-o",
-        help="Output directory for reports.",
+        help="Output directory for reports (available in Phase 6).",
     ),
     fmt: str = typer.Option(
         "html",
         "--format",
         "-f",
-        help="Report format: html, json, or csv.",
+        help="Report format: html, json, or csv (available in Phase 6).",
     ),
     no_report: bool = typer.Option(
         False,
@@ -290,15 +322,20 @@ def run_cmd(
     enable_dashboard: bool = typer.Option(
         False,
         "--dashboard",
-        help="Start the live dashboard server (Phase 7).",
+        help="Start the live dashboard server (available in Phase 7).",
     ),
     dashboard_port: int = typer.Option(
         8089,
         "--dashboard-port",
-        help="Port for the live dashboard.",
+        help="Port for the live dashboard (available in Phase 7).",
     ),
 ) -> None:
-    """Execute a load test scenario with live terminal output."""
+    """Execute a load test scenario with live terminal output.
+
+    Raises:
+        typer.Exit: With code 1 on error or if --fail-on-error-rate threshold
+            is exceeded.
+    """
     # Build the traffic pattern from CLI flags
     load_pattern = _build_pattern(
         pattern_name=pattern,
@@ -311,11 +348,8 @@ def run_cmd(
 
     log_level = logging.DEBUG if verbose else logging.INFO
 
-    # Mutable holder so the on_snapshot callback can update the displayed data
-    latest: list[MetricSnapshot | None] = [None]
-
-    def _on_snapshot(snapshot: MetricSnapshot) -> None:
-        latest[0] = snapshot
+    def _on_snapshot(snapshot: MetricSnapshot, live: Live) -> None:
+        live.update(_make_live_table(snapshot, snapshot.elapsed_seconds))
 
     console.print(
         Panel(
@@ -331,19 +365,6 @@ def run_cmd(
     if enable_dashboard:
         console.print("[yellow]Live dashboard will be available in Phase 7.[/yellow]")
 
-    try:
-        test_runner = LoadTestRunner(
-            scenario_path=scenario_file,
-            pattern=load_pattern,
-            duration_seconds=duration,
-            num_workers=workers,
-            on_snapshot=_on_snapshot,
-            log_level=log_level,
-        )
-    except LoadForgeError as exc:
-        console.print(f"[red]Error:[/red] {exc}")
-        raise typer.Exit(code=1) from exc
-
     # Run with live display
     try:
         with Live(
@@ -352,15 +373,14 @@ def run_cmd(
             refresh_per_second=2,
             transient=True,
         ) as live:
-            original_cb = _on_snapshot
-
-            def _live_snapshot(snapshot: MetricSnapshot) -> None:
-                original_cb(snapshot)
-                live.update(
-                    _make_live_table(snapshot, snapshot.elapsed_seconds),
-                )
-
-            test_runner._on_snapshot = _live_snapshot
+            test_runner = LoadTestRunner(
+                scenario_path=scenario_file,
+                pattern=load_pattern,
+                duration_seconds=duration,
+                num_workers=workers,
+                on_snapshot=lambda snap: _on_snapshot(snap, live),
+                log_level=log_level,
+            )
             result = test_runner.run()
     except LoadForgeError as exc:
         console.print(f"[red]Load test failed:[/red] {exc}")

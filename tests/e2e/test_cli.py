@@ -137,6 +137,30 @@ def test_init_rejects_existing_file(tmp_path: Path, monkeypatch: pytest.MonkeyPa
     assert result.exit_code == 1
 
 
+def test_init_special_characters(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """loadforge init sanitises special characters in the name."""
+    monkeypatch.chdir(tmp_path)
+    result = runner.invoke(app, ["init", "test{braces}"])
+    assert result.exit_code == 0
+    # Braces should be sanitised to underscores
+    generated_files = list(tmp_path.glob("*.py"))
+    assert len(generated_files) == 1
+    content = generated_files[0].read_text()
+    # File should be valid Python
+    compile(content, generated_files[0].name, "exec")
+
+
+def test_init_numeric_prefix(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """loadforge init handles names starting with digits."""
+    monkeypatch.chdir(tmp_path)
+    result = runner.invoke(app, ["init", "123test"])
+    assert result.exit_code == 0
+    generated_files = list(tmp_path.glob("*.py"))
+    assert len(generated_files) == 1
+    content = generated_files[0].read_text()
+    compile(content, generated_files[0].name, "exec")
+
+
 # ---------------------------------------------------------------------------
 # Tests: loadforge run (basic)
 # ---------------------------------------------------------------------------
@@ -211,6 +235,65 @@ def test_run_step_pattern(cli_scenario: Path):
         ],
     )
     assert result.exit_code == 0, f"stderr: {result.output}"
+
+
+@pytest.mark.slow
+def test_run_spike_pattern(cli_scenario: Path):
+    """loadforge run with --pattern spike works."""
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            str(cli_scenario),
+            "--users",
+            "2",
+            "--duration",
+            "3",
+            "--pattern",
+            "spike",
+            "--workers",
+            "1",
+            "--no-report",
+        ],
+    )
+    assert result.exit_code == 0, f"output: {result.output}"
+
+
+@pytest.mark.slow
+def test_run_diurnal_pattern(cli_scenario: Path):
+    """loadforge run with --pattern diurnal works."""
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            str(cli_scenario),
+            "--users",
+            "4",
+            "--duration",
+            "3",
+            "--pattern",
+            "diurnal",
+            "--workers",
+            "1",
+            "--no-report",
+        ],
+    )
+    assert result.exit_code == 0, f"output: {result.output}"
+
+
+def test_run_invalid_pattern(cli_scenario: Path):
+    """--pattern invalid exits non-zero."""
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            str(cli_scenario),
+            "--pattern",
+            "invalid_pattern",
+            "--no-report",
+        ],
+    )
+    assert result.exit_code != 0
 
 
 def test_run_ramp_requires_ramp_to(cli_scenario: Path):
@@ -318,4 +401,26 @@ def test_dashboard_placeholder(tmp_path: Path):
     """loadforge dashboard prints Phase 7 message."""
     result = runner.invoke(app, ["dashboard", str(tmp_path)])
     assert result.exit_code == 0
+    assert "Phase 7" in result.output
+
+
+@pytest.mark.slow
+def test_run_with_dashboard_flag(cli_scenario: Path):
+    """--dashboard flag prints Phase 7 message but run still succeeds."""
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            str(cli_scenario),
+            "--users",
+            "2",
+            "--duration",
+            "3",
+            "--workers",
+            "1",
+            "--dashboard",
+            "--no-report",
+        ],
+    )
+    assert result.exit_code == 0, f"output: {result.output}"
     assert "Phase 7" in result.output
