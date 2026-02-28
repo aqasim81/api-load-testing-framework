@@ -46,7 +46,7 @@ class HdrHistogramWrapper:
         """
         self.lowest_us = lowest_us
         self.highest_us = highest_us
-        self._histogram: HdrHistogram = HdrHistogram(
+        self._histogram: HdrHistogram = HdrHistogram(  # type: ignore[no-any-unimported]
             lowest_us, highest_us, significant_digits
         )
 

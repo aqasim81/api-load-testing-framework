@@ -156,9 +156,7 @@ class LoadTestRunner:
             coordinator.start()
             aggregator.start()
 
-            scheduler = Scheduler(
-                self._pattern, self._duration_seconds, self._tick_interval
-            )
+            scheduler = Scheduler(self._pattern, self._duration_seconds, self._tick_interval)
 
             for command in scheduler.iter_commands():
                 if self._should_stop():
@@ -201,9 +199,7 @@ class LoadTestRunner:
         failed_workers = [r for r in worker_results if not r.success]
         if failed_workers:
             for r in failed_workers:
-                logger.warning(
-                    "Worker %d failed: %s", r.worker_id, r.error_message
-                )
+                logger.warning("Worker %d failed: %s", r.worker_id, r.error_message)
 
         # Build final result
         final_summary = aggregator.get_final_snapshot(elapsed_seconds=total_duration)

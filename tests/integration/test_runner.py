@@ -7,12 +7,13 @@ from typing import TYPE_CHECKING
 import pytest
 
 from loadforge.engine.runner import LoadTestRunner
-from loadforge.metrics.models import MetricSnapshot
 from loadforge.patterns.constant import ConstantPattern
 from loadforge.patterns.ramp import RampPattern
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    from loadforge.metrics.models import MetricSnapshot
 
 
 @pytest.mark.timeout(30)

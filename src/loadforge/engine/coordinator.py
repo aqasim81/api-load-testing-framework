@@ -83,9 +83,7 @@ class Coordinator:
         for commands on its command queue.
         """
         per_worker_rate = (
-            self._rate_limit / self.num_workers
-            if self._rate_limit is not None
-            else None
+            self._rate_limit / self.num_workers if self._rate_limit is not None else None
         )
 
         for i in range(self.num_workers):
@@ -160,9 +158,7 @@ class Coordinator:
         for p in self._processes:
             p.join(timeout=timeout)
             if p.is_alive():
-                logger.warning(
-                    "Worker %s did not exit in time, terminating", p.name
-                )
+                logger.warning("Worker %s did not exit in time, terminating", p.name)
                 p.terminate()
                 p.join(timeout=2.0)
 

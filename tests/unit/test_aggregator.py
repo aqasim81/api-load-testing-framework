@@ -168,9 +168,7 @@ class TestMetricAggregator:
 
         q.put([_make_metric()])
 
-        aggregator = MetricAggregator(
-            [q], store, on_snapshot=callbacks.append, tick_interval=0.2
-        )
+        aggregator = MetricAggregator([q], store, on_snapshot=callbacks.append, tick_interval=0.2)
         aggregator.start()
         time.sleep(0.5)
         aggregator.stop()

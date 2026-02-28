@@ -17,9 +17,7 @@ if TYPE_CHECKING:
 
 @pytest.mark.timeout(30)
 class TestCoordinator:
-    def test_spawns_workers_and_runs_to_completion(
-        self, scenario_file: Path
-    ):
+    def test_spawns_workers_and_runs_to_completion(self, scenario_file: Path):
         coordinator = Coordinator(
             scenario_path=str(scenario_file),
             num_workers=2,
@@ -27,9 +25,7 @@ class TestCoordinator:
             tick_interval=0.5,
         )
         store = MetricStore()
-        aggregator = MetricAggregator(
-            coordinator.metric_queues, store, tick_interval=0.5
-        )
+        aggregator = MetricAggregator(coordinator.metric_queues, store, tick_interval=0.5)
 
         coordinator.start()
         aggregator.start()
@@ -46,9 +42,7 @@ class TestCoordinator:
         assert all(r.success for r in results)
         assert len(store) >= 1
 
-    def test_distributes_concurrency_evenly(
-        self, scenario_file: Path
-    ):
+    def test_distributes_concurrency_evenly(self, scenario_file: Path):
         coordinator = Coordinator(
             scenario_path=str(scenario_file),
             num_workers=2,
@@ -56,9 +50,7 @@ class TestCoordinator:
             tick_interval=0.5,
         )
         store = MetricStore()
-        aggregator = MetricAggregator(
-            coordinator.metric_queues, store, tick_interval=0.5
-        )
+        aggregator = MetricAggregator(coordinator.metric_queues, store, tick_interval=0.5)
 
         coordinator.start()
         aggregator.start()

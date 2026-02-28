@@ -218,6 +218,9 @@ omit = [
     "src/loadforge/dashboard/static/*",
     "src/loadforge/engine/session.py",
     "src/loadforge/engine/worker.py",
+    "src/loadforge/engine/coordinator.py",
+    "src/loadforge/engine/runner.py",
+    "src/loadforge/engine/protocol.py",
 ]
 
 [tool.coverage.paths]

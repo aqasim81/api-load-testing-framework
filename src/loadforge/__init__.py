@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from loadforge.dsl.decorators import scenario, setup, task, teardown
 from loadforge.dsl.http_client import HttpClient, RequestMetric
+from loadforge.engine.runner import LoadTestRunner
 from loadforge.engine.worker import run_worker
 from loadforge.metrics.models import EndpointMetrics, MetricSnapshot, TestResult
 from loadforge.patterns.base import LoadPattern
@@ -23,6 +24,7 @@ __all__ = [
     "EndpointMetrics",
     "HttpClient",
     "LoadPattern",
+    "LoadTestRunner",
     "MetricSnapshot",
     "RampPattern",
     "RequestMetric",
