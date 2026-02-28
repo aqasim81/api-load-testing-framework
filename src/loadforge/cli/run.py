@@ -201,38 +201,38 @@ def _print_summary(result: TestResult) -> None:
         table.add_row("Total Errors", str(summary.total_errors))
         table.add_row("Error Rate", f"{summary.error_rate * 100:.2f}%")
 
-        # Per-endpoint breakdown
-        if summary.endpoints:
-            console.print()
-            ep_table = Table(
-                title="Per-Endpoint Breakdown",
-                show_header=True,
-                header_style="bold cyan",
-                expand=True,
-            )
-            ep_table.add_column("Endpoint")
-            ep_table.add_column("Requests", justify="right")
-            ep_table.add_column("RPS", justify="right")
-            ep_table.add_column("p50", justify="right")
-            ep_table.add_column("p95", justify="right")
-            ep_table.add_column("p99", justify="right")
-            ep_table.add_column("Errors", justify="right")
-            ep_table.add_column("Error %", justify="right")
-
-            for ep in summary.endpoints.values():
-                ep_table.add_row(
-                    ep.name,
-                    str(ep.request_count),
-                    f"{ep.requests_per_second:.1f}",
-                    f"{ep.latency_p50:.1f}ms",
-                    f"{ep.latency_p95:.1f}ms",
-                    f"{ep.latency_p99:.1f}ms",
-                    str(ep.error_count),
-                    f"{ep.error_rate * 100:.2f}%",
-                )
-            console.print(ep_table)
-
     console.print(table)
+
+    # Per-endpoint breakdown (after the summary overview)
+    if summary and summary.endpoints:
+        console.print()
+        ep_table = Table(
+            title="Per-Endpoint Breakdown",
+            show_header=True,
+            header_style="bold cyan",
+            expand=True,
+        )
+        ep_table.add_column("Endpoint")
+        ep_table.add_column("Requests", justify="right")
+        ep_table.add_column("RPS", justify="right")
+        ep_table.add_column("p50", justify="right")
+        ep_table.add_column("p95", justify="right")
+        ep_table.add_column("p99", justify="right")
+        ep_table.add_column("Errors", justify="right")
+        ep_table.add_column("Error %", justify="right")
+
+        for ep in summary.endpoints.values():
+            ep_table.add_row(
+                ep.name,
+                str(ep.request_count),
+                f"{ep.requests_per_second:.1f}",
+                f"{ep.latency_p50:.1f}ms",
+                f"{ep.latency_p95:.1f}ms",
+                f"{ep.latency_p99:.1f}ms",
+                str(ep.error_count),
+                f"{ep.error_rate * 100:.2f}%",
+            )
+        console.print(ep_table)
 
 
 # ---------------------------------------------------------------------------
