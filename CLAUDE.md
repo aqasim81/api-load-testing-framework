@@ -13,7 +13,7 @@ a live React dashboard, and interactive HTML reports.
 - [x] Phase 1: Foundation + Scenario DSL
 - [x] Phase 2: Traffic Patterns
 - [x] Phase 3: Single-Worker Engine
-- [ ] Phase 4: Multi-Worker Distribution
+- [x] Phase 4: Multi-Worker Distribution
 - [ ] Phase 5: CLI Interface
 - [ ] Phase 6: Post-Run Reports
 - [ ] Phase 7: Live React Dashboard
