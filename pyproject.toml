@@ -122,8 +122,11 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 # Tests: no annotations, no docstrings, assert is fine, unused fixture args ok
-"tests/**/*.py" = ["ANN", "D", "S101", "ARG", "S311"]
+"tests/**/*.py" = ["ANN", "D", "S101", "ARG", "S311", "TCH003"]
 "tests/conftest.py" = ["ANN", "D", "ARG"]
+# CLI: typer params must stay in signatures even when unused (Phase 6/7 placeholders);
+# Path is used at runtime by typer.Argument/Option
+"src/loadforge/cli/**/*.py" = ["ARG", "TCH003"]
 # Examples: user-facing, should be simple and readable
 "examples/**/*.py" = ["D", "ANN", "S101", "S311"]
 
@@ -221,6 +224,7 @@ omit = [
     "src/loadforge/engine/coordinator.py",
     "src/loadforge/engine/runner.py",
     "src/loadforge/engine/protocol.py",
+    "src/loadforge/cli/*",
 ]
 
 [tool.coverage.paths]
