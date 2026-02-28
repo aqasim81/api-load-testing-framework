@@ -165,22 +165,6 @@ class TestScenario:
 # =============================================================================
 
 
-def _run_echo_server_in_thread(port: int, started: threading.Event) -> asyncio.AbstractEventLoop:
-    """Run an aiohttp echo server in a background thread."""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    app = _create_echo_app()
-    runner = web.AppRunner(app)
-    loop.run_until_complete(runner.setup())
-    site = web.TCPSite(runner, "127.0.0.1", port)
-    loop.run_until_complete(site.start())
-    started.set()
-    loop.run_forever()
-    loop.run_until_complete(runner.cleanup())
-    loop.close()
-    return loop
-
-
 @pytest.fixture
 def sync_echo_server() -> Iterator[str]:
     """Echo server running in a background thread for sync tests.
