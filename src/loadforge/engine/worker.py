@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 
 from loadforge._internal.logging import get_logger, setup_logging
 from loadforge.dsl.http_client import HttpClient
+from loadforge.engine._user_utils import pick_weighted_task, shutdown_all_users
 from loadforge.engine.protocol import WorkerCommand, WorkerResult
 from loadforge.engine.rate_limiter import TokenBucketRateLimiter
 from loadforge.engine.session import TestSession
@@ -21,7 +22,7 @@ if TYPE_CHECKING:
     from multiprocessing import Queue as MpQueue
 
     from loadforge.dsl.http_client import RequestMetric
-    from loadforge.dsl.scenario import ScenarioDefinition, TaskDefinition
+    from loadforge.dsl.scenario import ScenarioDefinition
     from loadforge.metrics.models import TestResult
     from loadforge.patterns.base import LoadPattern
 
@@ -293,7 +294,7 @@ async def _run_worker_loop(
                 await asyncio.sleep(sleep_time)
 
     finally:
-        await _shutdown_all_users(user_tasks, stop_event)
+        await shutdown_all_users(user_tasks, stop_event)
 
         # Final flush
         final_elapsed = time.monotonic() - start_time
@@ -342,7 +343,7 @@ async def _run_virtual_user(
 
             # Task loop
             while not stop_event.is_set():
-                task_def = _pick_weighted_task(scenario)
+                task_def = pick_weighted_task(scenario.tasks)
                 try:
                     if rate_limiter is not None:
                         await rate_limiter.acquire()
@@ -373,20 +374,6 @@ async def _run_virtual_user(
                         user_id,
                         exc_info=True,
                     )
-
-
-def _pick_weighted_task(scenario: ScenarioDefinition) -> TaskDefinition:
-    """Select a task using weighted-random distribution.
-
-    Args:
-        scenario: Scenario to pick a task from.
-
-    Returns:
-        The selected TaskDefinition.
-    """
-    tasks = scenario.tasks
-    weights = [t.weight for t in tasks]
-    return random.choices(tasks, weights=weights, k=1)[0]  # noqa: S311
 
 
 async def _scale_users(
@@ -444,29 +431,3 @@ async def _scale_users(
                     await asyncio.wait_for(asyncio.shield(task), timeout=2.0)
 
     return user_tasks, next_user_id
-
-
-async def _shutdown_all_users(
-    user_tasks: list[tuple[int, asyncio.Task[None]]],
-    stop_event: asyncio.Event,
-) -> None:
-    """Gracefully shut down all virtual users.
-
-    Args:
-        user_tasks: List of (user_id, task) tuples.
-        stop_event: Shutdown event.
-    """
-    stop_event.set()
-
-    if user_tasks:
-        tasks = [t for _, t in user_tasks]
-        _done, pending = await asyncio.wait(tasks, timeout=5.0)
-
-        for task in pending:
-            task.cancel()
-
-        if pending:
-            await asyncio.wait(pending, timeout=2.0)
-
-    user_tasks.clear()
-    logger.debug("All virtual users shut down")

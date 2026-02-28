@@ -70,6 +70,7 @@ class MetricAggregator:
         self._thread: threading.Thread | None = None
         self._start_time: float = 0.0
         self._active_users: int = 0
+        self._active_users_lock = threading.Lock()
 
         # Per-tick histograms (reset each tick)
         self._tick_overall = HdrHistogramWrapper()
@@ -98,10 +99,14 @@ class MetricAggregator:
     def set_active_users(self, count: int) -> None:
         """Update the active user count for snapshots.
 
+        Thread-safe: called from the main thread while the background
+        aggregator thread reads the value in ``_build_snapshot``.
+
         Args:
             count: Current number of active virtual users across all workers.
         """
-        self._active_users = count
+        with self._active_users_lock:
+            self._active_users = count
 
     def start(self) -> None:
         """Start the aggregator background thread."""
@@ -271,6 +276,10 @@ class MetricAggregator:
         Returns:
             Aggregated MetricSnapshot.
         """
+        # Read active users under lock (written by main thread)
+        with self._active_users_lock:
+            active_users = self._active_users
+
         # Overall percentiles from histogram
         error_rate = error_count / request_count if request_count > 0 else 0.0
 
@@ -300,7 +309,7 @@ class MetricAggregator:
         return MetricSnapshot(
             timestamp=time.monotonic(),
             elapsed_seconds=elapsed_seconds,
-            active_users=self._active_users,
+            active_users=active_users,
             total_requests=request_count,
             requests_per_second=request_count / interval,
             latency_min=overall_hist.get_min(),

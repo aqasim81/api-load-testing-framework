@@ -14,13 +14,14 @@ from typing import TYPE_CHECKING
 from loadforge._internal.errors import EngineError
 from loadforge._internal.logging import get_logger
 from loadforge.dsl.http_client import HttpClient
+from loadforge.engine._user_utils import pick_weighted_task, shutdown_all_users
 from loadforge.engine.rate_limiter import TokenBucketRateLimiter
 from loadforge.engine.scheduler import Scheduler
 from loadforge.metrics.collector import MetricCollector
 from loadforge.metrics.models import MetricSnapshot, TestResult
 
 if TYPE_CHECKING:
-    from loadforge.dsl.scenario import ScenarioDefinition, TaskDefinition
+    from loadforge.dsl.scenario import ScenarioDefinition
     from loadforge.patterns.base import LoadPattern
 
 logger = get_logger("engine.session")
@@ -168,7 +169,7 @@ class TestSession:
             # Graceful shutdown
             if self._state != SessionState.FAILED:
                 self._state = SessionState.STOPPING
-            await self._shutdown_all_users()
+            await shutdown_all_users(self._user_tasks, self._stop_event)
             self._remove_signal_handlers()
 
         end_time = time.monotonic()
@@ -237,7 +238,7 @@ class TestSession:
 
                 # Task loop
                 while not self._stop_event.is_set():
-                    task_def = self._pick_weighted_task()
+                    task_def = pick_weighted_task(self._scenario.tasks)
                     try:
                         if self._rate_limiter is not None:
                             await self._rate_limiter.acquire()
@@ -270,16 +271,6 @@ class TestSession:
                             exc_info=True,
                         )
 
-    def _pick_weighted_task(self) -> TaskDefinition:
-        """Select a task using weighted-random distribution.
-
-        Returns:
-            The selected TaskDefinition.
-        """
-        tasks = self._scenario.tasks
-        weights = [t.weight for t in tasks]
-        return random.choices(tasks, weights=weights, k=1)[0]  # noqa: S311
-
     async def _scale_users(self, target: int) -> None:
         """Adjust the number of active virtual users to match target.
 
@@ -311,27 +302,6 @@ class TestSession:
 
         # Clean up completed tasks
         self._user_tasks = [(uid, t) for uid, t in self._user_tasks if not t.done()]
-
-    async def _shutdown_all_users(self) -> None:
-        """Gracefully shut down all virtual users."""
-        self._stop_event.set()
-
-        # Give users a chance to finish their current task
-        if self._user_tasks:
-            tasks = [t for _, t in self._user_tasks]
-            # Wait up to 5 seconds for graceful shutdown
-            _done, pending = await asyncio.wait(tasks, timeout=5.0)
-
-            # Cancel any that are still running
-            for task in pending:
-                task.cancel()
-
-            # Wait for cancellation to complete
-            if pending:
-                await asyncio.wait(pending, timeout=2.0)
-
-        self._user_tasks.clear()
-        logger.debug("All virtual users shut down")
 
     def _install_signal_handlers(self) -> None:
         """Install SIGINT and SIGTERM handlers for graceful shutdown.
