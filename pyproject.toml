@@ -30,6 +30,7 @@ dependencies = [
     "fastapi>=0.115",
     "uvicorn>=0.34",
     "websockets>=14.0",
+    "wsproto>=1.2",
 ]
 
 [project.optional-dependencies]
@@ -211,6 +212,7 @@ addopts = [
 filterwarnings = [
     "error",
     "ignore::DeprecationWarning:aiohttp.*",
+    "ignore::DeprecationWarning:websockets.*",
 ]
 
 # ==============================================================================
