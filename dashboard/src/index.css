@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+@theme {
+  --color-chart-green: #22c55e;
+  --color-chart-blue: #3b82f6;
+  --color-chart-orange: #f59e0b;
+  --color-chart-red: #ef4444;
+  --color-chart-purple: #a855f7;
+  --color-chart-cyan: #06b6d4;
+}
+
+body {
+  font-family:
+    "Inter",
+    system-ui,
+    -apple-system,
+    sans-serif;
+}
