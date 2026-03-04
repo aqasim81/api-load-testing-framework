@@ -98,7 +98,7 @@ class DashboardServer:
         self._broadcaster = broadcaster
         self._config = uvicorn.Config(
             app,
-            host="0.0.0.0",
+            host="0.0.0.0",  # noqa: S104
             port=port,
             log_level="warning",
             access_log=False,

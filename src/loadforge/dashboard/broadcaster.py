@@ -9,6 +9,7 @@ and a lock protecting the client set.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import threading
 from typing import TYPE_CHECKING
@@ -96,12 +97,8 @@ class SnapshotBroadcaster:
             clients = set(self._clients)
 
         for q in clients:
-            try:
+            with contextlib.suppress(asyncio.QueueFull, RuntimeError):
                 self._loop.call_soon_threadsafe(q.put_nowait, json_str)
-            except (asyncio.QueueFull, RuntimeError):
-                # QueueFull: slow client, drop this message
-                # RuntimeError: loop is closed (shutdown in progress)
-                pass
 
 
 def _serialize_snapshot(snapshot: MetricSnapshot) -> str:
@@ -139,9 +136,7 @@ def _serialize_snapshot(snapshot: MetricSnapshot) -> str:
             "errors": {
                 "total": snapshot.total_errors,
                 "rate": snapshot.error_rate,
-                "by_status": {
-                    str(k): v for k, v in snapshot.errors_by_status.items()
-                },
+                "by_status": {str(k): v for k, v in snapshot.errors_by_status.items()},
             },
             "endpoints": [
                 {

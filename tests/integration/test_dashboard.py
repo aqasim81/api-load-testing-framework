@@ -80,54 +80,59 @@ async def dashboard(
 async def test_health_endpoint(
     dashboard: tuple[DashboardServer, SnapshotBroadcaster, int],
 ) -> None:
-    server, _, port = dashboard
-    async with aiohttp.ClientSession() as session:
-        async with session.get(f"http://localhost:{port}/api/health") as resp:
-            assert resp.status == 200
-            data = await resp.json()
-            assert data == {"status": "ok"}
+    _server, _, port = dashboard
+    async with (
+        aiohttp.ClientSession() as session,
+        session.get(f"http://localhost:{port}/api/health") as resp,
+    ):
+        assert resp.status == 200
+        data = await resp.json()
+        assert data == {"status": "ok"}
 
 
 async def test_websocket_connect_and_receive(
     dashboard: tuple[DashboardServer, SnapshotBroadcaster, int],
 ) -> None:
     _, broadcaster, port = dashboard
-    async with aiohttp.ClientSession() as session:
-        async with session.ws_connect(f"http://localhost:{port}/ws/metrics") as ws:
-            snapshot = _make_snapshot()
-            broadcaster.on_snapshot(snapshot)
+    async with (
+        aiohttp.ClientSession() as session,
+        session.ws_connect(f"http://localhost:{port}/ws/metrics") as ws,
+    ):
+        snapshot = _make_snapshot()
+        broadcaster.on_snapshot(snapshot)
 
-            msg = await asyncio.wait_for(ws.receive(), timeout=5.0)
-            assert msg.type == aiohttp.WSMsgType.TEXT
+        msg = await asyncio.wait_for(ws.receive(), timeout=5.0)
+        assert msg.type == aiohttp.WSMsgType.TEXT
 
-            data = json.loads(msg.data)
-            assert data["type"] == "snapshot"
-            assert data["data"]["active_users"] == 50
-            assert data["data"]["rps"] == 50.0
+        data = json.loads(msg.data)
+        assert data["type"] == "snapshot"
+        assert data["data"]["active_users"] == 50
+        assert data["data"]["rps"] == 50.0
 
 
 async def test_websocket_multiple_clients(
     dashboard: tuple[DashboardServer, SnapshotBroadcaster, int],
 ) -> None:
     _, broadcaster, port = dashboard
-    async with aiohttp.ClientSession() as session:
-        async with (
-            session.ws_connect(f"http://localhost:{port}/ws/metrics") as ws1,
-            session.ws_connect(f"http://localhost:{port}/ws/metrics") as ws2,
-        ):
-            assert broadcaster.client_count == 2
+    url = f"http://localhost:{port}/ws/metrics"
+    async with (
+        aiohttp.ClientSession() as session,
+        session.ws_connect(url) as ws1,
+        session.ws_connect(url) as ws2,
+    ):
+        assert broadcaster.client_count == 2
 
-            snapshot = _make_snapshot(active_users=42)
-            broadcaster.on_snapshot(snapshot)
+        snapshot = _make_snapshot(active_users=42)
+        broadcaster.on_snapshot(snapshot)
 
-            msg1 = await asyncio.wait_for(ws1.receive(), timeout=5.0)
-            msg2 = await asyncio.wait_for(ws2.receive(), timeout=5.0)
+        msg1 = await asyncio.wait_for(ws1.receive(), timeout=5.0)
+        msg2 = await asyncio.wait_for(ws2.receive(), timeout=5.0)
 
-            data1 = json.loads(msg1.data)
-            data2 = json.loads(msg2.data)
+        data1 = json.loads(msg1.data)
+        data2 = json.loads(msg2.data)
 
-            assert data1["data"]["active_users"] == 42
-            assert data2["data"]["active_users"] == 42
+        assert data1["data"]["active_users"] == 42
+        assert data2["data"]["active_users"] == 42
 
 
 async def test_websocket_disconnect_cleanup(
@@ -153,44 +158,46 @@ async def test_message_format_validation(
     dashboard: tuple[DashboardServer, SnapshotBroadcaster, int],
 ) -> None:
     _, broadcaster, port = dashboard
-    async with aiohttp.ClientSession() as session:
-        async with session.ws_connect(f"http://localhost:{port}/ws/metrics") as ws:
-            snapshot = _make_snapshot()
-            broadcaster.on_snapshot(snapshot)
+    async with (
+        aiohttp.ClientSession() as session,
+        session.ws_connect(f"http://localhost:{port}/ws/metrics") as ws,
+    ):
+        snapshot = _make_snapshot()
+        broadcaster.on_snapshot(snapshot)
 
-            msg = await asyncio.wait_for(ws.receive(), timeout=5.0)
-            data = json.loads(msg.data)
+        msg = await asyncio.wait_for(ws.receive(), timeout=5.0)
+        data = json.loads(msg.data)
 
-            # Validate top-level structure
-            assert data["type"] == "snapshot"
-            payload = data["data"]
+        # Validate top-level structure
+        assert data["type"] == "snapshot"
+        payload = data["data"]
 
-            # Validate all required fields
-            assert isinstance(payload["timestamp"], float)
-            assert isinstance(payload["elapsed_seconds"], float)
-            assert isinstance(payload["active_users"], int)
-            assert isinstance(payload["rps"], float)
-            assert isinstance(payload["total_requests"], int)
+        # Validate all required fields
+        assert isinstance(payload["timestamp"], float)
+        assert isinstance(payload["elapsed_seconds"], float)
+        assert isinstance(payload["active_users"], int)
+        assert isinstance(payload["rps"], float)
+        assert isinstance(payload["total_requests"], int)
 
-            # Validate latency nested object
-            latency = payload["latency"]
-            for key in ("p50", "p75", "p90", "p95", "p99", "p999", "min", "max", "avg"):
-                assert key in latency
-                assert isinstance(latency[key], float)
+        # Validate latency nested object
+        latency = payload["latency"]
+        for key in ("p50", "p75", "p90", "p95", "p99", "p999", "min", "max", "avg"):
+            assert key in latency
+            assert isinstance(latency[key], float)
 
-            # Validate errors nested object
-            errors = payload["errors"]
-            assert isinstance(errors["total"], int)
-            assert isinstance(errors["rate"], float)
-            assert isinstance(errors["by_status"], dict)
+        # Validate errors nested object
+        errors = payload["errors"]
+        assert isinstance(errors["total"], int)
+        assert isinstance(errors["rate"], float)
+        assert isinstance(errors["by_status"], dict)
 
-            # Validate endpoints list
-            endpoints = payload["endpoints"]
-            assert isinstance(endpoints, list)
-            assert len(endpoints) == 1
-            ep = endpoints[0]
-            assert ep["name"] == "List Items"
-            assert isinstance(ep["rps"], float)
+        # Validate endpoints list
+        endpoints = payload["endpoints"]
+        assert isinstance(endpoints, list)
+        assert len(endpoints) == 1
+        ep = endpoints[0]
+        assert ep["name"] == "List Items"
+        assert isinstance(ep["rps"], float)
 
 
 async def test_server_start_stop(
@@ -198,9 +205,11 @@ async def test_server_start_stop(
 ) -> None:
     server, _, port = dashboard
     # Server should be running (health check)
-    async with aiohttp.ClientSession() as session:
-        async with session.get(f"http://localhost:{port}/api/health") as resp:
-            assert resp.status == 200
+    async with (
+        aiohttp.ClientSession() as session,
+        session.get(f"http://localhost:{port}/api/health") as resp,
+    ):
+        assert resp.status == 200
 
     # Stop is handled by fixture teardown — verify it doesn't raise
     server.stop()

@@ -375,9 +375,7 @@ def run_cmd(
         except LoadForgeError as exc:
             console.print(f"[red]Dashboard failed to start:[/red] {exc}")
             raise typer.Exit(code=1) from exc
-        console.print(
-            f"[green]Dashboard running at http://localhost:{dashboard_port}[/green]"
-        )
+        console.print(f"[green]Dashboard running at http://localhost:{dashboard_port}[/green]")
 
     # Run with live display
     try:

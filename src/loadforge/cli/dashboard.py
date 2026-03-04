@@ -80,8 +80,7 @@ def dashboard_cmd(
 
         # After replay, keep server open until interrupted
         console.print(
-            "[dim]Replay complete. Dashboard still running"
-            " \u2014 press Ctrl+C to exit.[/dim]"
+            "[dim]Replay complete. Dashboard still running \u2014 press Ctrl+C to exit.[/dim]"
         )
         while True:
             time.sleep(1.0)
