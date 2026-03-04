@@ -1,0 +1,42 @@
+<section id="summary" class="summary-grid">
+  <div class="card">
+    <span class="card-label">Scenario</span>
+    <span class="card-value">{{ scenario_name }}</span>
+  </div>
+  <div class="card">
+    <span class="card-label">Pattern</span>
+    <span class="card-value">{{ pattern_description }}</span>
+  </div>
+  <div class="card">
+    <span class="card-label">Duration</span>
+    <span class="card-value">{{ "%.1f"|format(duration_seconds) }}s</span>
+  </div>
+  <div class="card">
+    <span class="card-label">Total Requests</span>
+    <span class="card-value">{{ "{:,}".format(total_requests) }}</span>
+  </div>
+  <div class="card">
+    <span class="card-label">Avg RPS</span>
+    <span class="card-value">{{ "%.1f"|format(avg_rps) }}</span>
+  </div>
+  <div class="card">
+    <span class="card-label">p50 Latency</span>
+    <span class="card-value">{{ "%.1f"|format(p50) }}ms</span>
+  </div>
+  <div class="card">
+    <span class="card-label">p95 Latency</span>
+    <span class="card-value">{{ "%.1f"|format(p95) }}ms</span>
+  </div>
+  <div class="card">
+    <span class="card-label">p99 Latency</span>
+    <span class="card-value">{{ "%.1f"|format(p99) }}ms</span>
+  </div>
+  <div class="card {% if error_rate_pct > 5 %}card-danger{% elif error_rate_pct > 0 %}card-warn{% endif %}">
+    <span class="card-label">Error Rate</span>
+    <span class="card-value">{{ "%.2f"|format(error_rate_pct) }}%</span>
+  </div>
+  <div class="card">
+    <span class="card-label">Total Errors</span>
+    <span class="card-value">{{ "{:,}".format(total_errors) }}</span>
+  </div>
+</section>

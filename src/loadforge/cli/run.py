@@ -295,13 +295,13 @@ def run_cmd(
         Path("./results"),
         "--output",
         "-o",
-        help="Output directory for reports (available in Phase 6).",
+        help="Output directory for reports.",
     ),
     fmt: str = typer.Option(
         "html",
         "--format",
         "-f",
-        help="Report format: html, json, or csv (available in Phase 6).",
+        help="Report format: html, json, or csv.",
     ),
     no_report: bool = typer.Option(
         False,
@@ -389,6 +389,10 @@ def run_cmd(
     # Print final summary
     _print_summary(result)
 
+    # Generate reports (unless --no-report)
+    if not no_report:
+        _generate_reports(result, output_dir=output, fmt=fmt)
+
     # Check error rate threshold
     if (
         fail_on_error_rate is not None
@@ -402,3 +406,50 @@ def run_cmd(
         raise typer.Exit(code=1)
 
     console.print("[green]Load test completed successfully.[/green]")
+
+
+# ---------------------------------------------------------------------------
+# Report generation
+# ---------------------------------------------------------------------------
+
+
+def _generate_reports(
+    result: TestResult,
+    *,
+    output_dir: Path,
+    fmt: str,
+) -> None:
+    """Save the test result and generate the requested report format.
+
+    Always saves ``result.json`` regardless of ``--format``, enabling
+    future ``loadforge report`` re-runs.
+
+    Args:
+        result: Completed test result.
+        output_dir: Directory to write reports into.
+        fmt: Report format: html, json, or csv.
+    """
+    from loadforge.reports.exporters import export_csv, export_html, export_json
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Always save raw JSON for re-reporting
+    json_path = output_dir / "result.json"
+    export_json(result, json_path)
+    console.print(f"[dim]Saved result data to {json_path}[/dim]")
+
+    if fmt == "html":
+        report_path = output_dir / "report.html"
+        try:
+            export_html(result, report_path)
+            console.print(f"[green]Report generated at {report_path}[/green]")
+        except Exception as exc:
+            console.print(f"[yellow]Report generation failed: {exc}[/yellow]")
+    elif fmt == "csv":
+        csv_path = output_dir / "report.csv"
+        export_csv(result, csv_path)
+        console.print(f"[green]CSV exported to {csv_path}[/green]")
+    elif fmt == "json":
+        console.print(f"[green]JSON export at {json_path}[/green]")
+    else:
+        console.print(f"[yellow]Unknown format '{fmt}', skipping report.[/yellow]")

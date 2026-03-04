@@ -1,8 +1,4 @@
-"""``loadforge report`` — regenerate reports from saved test data.
-
-This is a placeholder for Phase 6 (Post-Run Reports). The command will
-be fully implemented once the report generation module is built.
-"""
+"""``loadforge report`` — regenerate reports from saved test data."""
 
 from __future__ import annotations
 
@@ -30,8 +26,30 @@ def report_cmd(
     ),
 ) -> None:
     """Regenerate reports from previously saved test data."""
-    console.print(
-        f"[yellow]Report generation will be available in Phase 6.[/yellow]\n"
-        f"  results_dir: {results_dir}\n"
-        f"  format: {fmt}",
-    )
+    json_path = results_dir / "result.json"
+    if not json_path.exists():
+        console.print(f"[red]No result.json found in {results_dir}[/red]")
+        raise typer.Exit(code=1)
+
+    from loadforge._internal.errors import LoadForgeError
+    from loadforge.reports.exporters import export_csv, export_html, load_result
+
+    try:
+        result = load_result(json_path)
+    except LoadForgeError as exc:
+        console.print(f"[red]Failed to load result: {exc}[/red]")
+        raise typer.Exit(code=1) from exc
+
+    if fmt == "html":
+        report_path = results_dir / "report.html"
+        export_html(result, report_path)
+        console.print(f"[green]Report generated at {report_path}[/green]")
+    elif fmt == "csv":
+        csv_path = results_dir / "report.csv"
+        export_csv(result, csv_path)
+        console.print(f"[green]CSV exported to {csv_path}[/green]")
+    elif fmt == "json":
+        console.print(f"[dim]JSON already at {json_path}[/dim]")
+    else:
+        console.print(f"[red]Unknown format: {fmt}. Use html, json, or csv.[/red]")
+        raise typer.Exit(code=1)

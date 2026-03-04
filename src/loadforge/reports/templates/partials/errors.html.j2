@@ -1,0 +1,9 @@
+<section id="errors">
+  <h2>Errors</h2>
+  {% if total_errors > 0 %}
+  <div id="chart-error-breakdown" class="chart-container"></div>
+  <div id="chart-error-pie" class="chart-container"></div>
+  {% else %}
+  <p class="no-data">No errors recorded during this test run.</p>
+  {% endif %}
+</section>

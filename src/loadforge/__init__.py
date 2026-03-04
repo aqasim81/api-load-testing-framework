@@ -14,6 +14,7 @@ from loadforge.patterns.diurnal import DiurnalPattern
 from loadforge.patterns.ramp import RampPattern
 from loadforge.patterns.spike import SpikePattern
 from loadforge.patterns.step import StepPattern
+from loadforge.reports import ReportGenerator, export_csv, export_html, export_json
 
 __version__ = "0.1.0"
 
@@ -27,10 +28,14 @@ __all__ = [
     "LoadTestRunner",
     "MetricSnapshot",
     "RampPattern",
+    "ReportGenerator",
     "RequestMetric",
     "SpikePattern",
     "StepPattern",
     "TestResult",
+    "export_csv",
+    "export_html",
+    "export_json",
     "run_worker",
     "scenario",
     "setup",

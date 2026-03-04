@@ -177,6 +177,11 @@ module = [
 ]
 ignore_missing_imports = true
 
+# Reports: chart functions return plotly Figure (unfollowed import → Any)
+[[tool.mypy.overrides]]
+module = "loadforge.reports.charts"
+disallow_any_unimported = false
+
 # Relax rules for tests
 [[tool.mypy.overrides]]
 module = "tests.*"

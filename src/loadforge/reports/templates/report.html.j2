@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LoadForge Report &mdash; {{ scenario_name }}</title>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <style>
+    :root {
+      --transition: background 0.3s, color 0.3s;
+    }
+    [data-theme="light"] {
+      --bg: #f8fafc;
+      --bg-alt: #ffffff;
+      --fg: #1e293b;
+      --fg-muted: #64748b;
+      --border: #e2e8f0;
+      --card-bg: #ffffff;
+      --card-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      --accent: #3b82f6;
+      --danger: #ef4444;
+      --warn: #f59e0b;
+      --table-stripe: #f1f5f9;
+    }
+    [data-theme="dark"] {
+      --bg: #0f172a;
+      --bg-alt: #1e293b;
+      --fg: #e2e8f0;
+      --fg-muted: #94a3b8;
+      --border: #334155;
+      --card-bg: #1e293b;
+      --card-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      --accent: #60a5fa;
+      --danger: #f87171;
+      --warn: #fbbf24;
+      --table-stripe: #1e293b;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.6;
+      transition: var(--transition);
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid var(--border);
+    }
+
+    header h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    header .meta {
+      font-size: 0.85rem;
+      color: var(--fg-muted);
+    }
+
+    .theme-toggle {
+      background: var(--bg-alt);
+      border: 1px solid var(--border);
+      color: var(--fg);
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: var(--transition);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    /* Summary grid */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      box-shadow: var(--card-shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      transition: var(--transition);
+    }
+
+    .card-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--fg-muted);
+      font-weight: 600;
+    }
+
+    .card-value {
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+
+    .card-danger { border-left: 3px solid var(--danger); }
+    .card-warn { border-left: 3px solid var(--warn); }
+
+    /* Sections */
+    section {
+      margin-bottom: 2.5rem;
+    }
+
+    section h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .chart-container {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      box-shadow: var(--card-shadow);
+    }
+
+    .no-data {
+      color: var(--fg-muted);
+      font-style: italic;
+      padding: 2rem;
+      text-align: center;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    /* Raw data table */
+    details {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    details summary {
+      padding: 0.75rem 1rem;
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--fg-muted);
+      user-select: none;
+    }
+
+    details summary:hover { color: var(--accent); }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    .data-table th {
+      background: var(--bg-alt);
+      padding: 0.5rem 0.75rem;
+      text-align: right;
+      font-weight: 600;
+      color: var(--fg-muted);
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    .data-table th:first-child { text-align: left; }
+
+    .data-table td {
+      padding: 0.4rem 0.75rem;
+      text-align: right;
+      border-bottom: 1px solid var(--border);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .data-table td:first-child { text-align: left; }
+
+    .data-table tbody tr:nth-child(even) {
+      background: var(--table-stripe);
+    }
+
+    .data-table tbody tr:hover {
+      background: color-mix(in srgb, var(--accent) 8%, var(--card-bg));
+    }
+
+    footer {
+      text-align: center;
+      color: var(--fg-muted);
+      font-size: 0.8rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>LoadForge Report</h1>
+        <div class="meta">Generated {{ generated_at }}</div>
+      </div>
+      <button class="theme-toggle" onclick="toggleTheme()">Toggle Theme</button>
+    </header>
+
+    {% include "partials/summary.html.j2" %}
+    {% include "partials/throughput.html.j2" %}
+    {% include "partials/latency.html.j2" %}
+    {% include "partials/errors.html.j2" %}
+
+    <section id="raw-data">
+      <h2>Raw Data</h2>
+      <details>
+        <summary>Snapshot Table ({{ snapshots|length }} rows)</summary>
+        <div style="overflow-x: auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="text-align:left">Elapsed (s)</th>
+                <th>Users</th>
+                <th>RPS</th>
+                <th>Requests</th>
+                <th>p50 (ms)</th>
+                <th>p95 (ms)</th>
+                <th>p99 (ms)</th>
+                <th>Errors</th>
+                <th>Error %</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in snapshots %}
+              <tr>
+                <td style="text-align:left">{{ "%.1f"|format(s.elapsed_seconds) }}</td>
+                <td>{{ s.active_users }}</td>
+                <td>{{ "%.1f"|format(s.requests_per_second) }}</td>
+                <td>{{ s.total_requests }}</td>
+                <td>{{ "%.1f"|format(s.latency_p50) }}</td>
+                <td>{{ "%.1f"|format(s.latency_p95) }}</td>
+                <td>{{ "%.1f"|format(s.latency_p99) }}</td>
+                <td>{{ s.total_errors }}</td>
+                <td>{{ "%.2f"|format(s.error_rate * 100) }}%</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </section>
+
+    <footer>
+      LoadForge &mdash; {{ scenario_name }}
+    </footer>
+  </div>
+
+  <script>
+    (function() {
+      var figures = {{ chart_figures_json }};
+      Object.keys(figures).forEach(function(divId) {
+        var el = document.getElementById(divId);
+        if (!el) return;
+        var fig = JSON.parse(figures[divId]);
+        var layout = fig.layout || {};
+        var theme = document.documentElement.dataset.theme;
+        if (theme === 'dark') {
+          layout.paper_bgcolor = 'rgba(0,0,0,0)';
+          layout.plot_bgcolor = 'rgba(0,0,0,0)';
+          layout.font = {color: '#e2e8f0'};
+        } else {
+          layout.paper_bgcolor = 'rgba(0,0,0,0)';
+          layout.plot_bgcolor = 'rgba(0,0,0,0)';
+          layout.font = {color: '#1e293b'};
+        }
+        Plotly.newPlot(divId, fig.data, layout, {responsive: true, displayModeBar: false});
+      });
+    })();
+
+    function toggleTheme() {
+      var html = document.documentElement;
+      var next = html.dataset.theme === 'light' ? 'dark' : 'light';
+      html.dataset.theme = next;
+      localStorage.setItem('lf-theme', next);
+      /* Re-render charts with updated colors */
+      var figures = {{ chart_figures_json }};
+      Object.keys(figures).forEach(function(divId) {
+        var el = document.getElementById(divId);
+        if (!el) return;
+        var fig = JSON.parse(figures[divId]);
+        var layout = fig.layout || {};
+        if (next === 'dark') {
+          layout.paper_bgcolor = 'rgba(0,0,0,0)';
+          layout.plot_bgcolor = 'rgba(0,0,0,0)';
+          layout.font = {color: '#e2e8f0'};
+        } else {
+          layout.paper_bgcolor = 'rgba(0,0,0,0)';
+          layout.plot_bgcolor = 'rgba(0,0,0,0)';
+          layout.font = {color: '#1e293b'};
+        }
+        Plotly.react(divId, fig.data, layout, {responsive: true, displayModeBar: false});
+      });
+    }
+
+    /* Restore saved theme */
+    var saved = localStorage.getItem('lf-theme');
+    if (saved && saved !== document.documentElement.dataset.theme) {
+      document.documentElement.dataset.theme = saved;
+      toggleTheme(); toggleTheme(); /* Re-render with correct theme */
+    }
+  </script>
+</body>
+</html>
