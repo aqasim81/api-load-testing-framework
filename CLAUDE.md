@@ -15,7 +15,7 @@ a live React dashboard, and interactive HTML reports.
 - [x] Phase 3: Single-Worker Engine
 - [x] Phase 4: Multi-Worker Distribution
 - [x] Phase 5: CLI Interface
-- [ ] Phase 6: Post-Run Reports
+- [x] Phase 6: Post-Run Reports
 - [ ] Phase 7: Live React Dashboard
 - [ ] Phase 8: Polish, Documentation, Examples
 
