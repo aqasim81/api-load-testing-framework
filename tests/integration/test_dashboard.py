@@ -11,54 +11,10 @@ import pytest
 
 from loadforge.dashboard.broadcaster import SnapshotBroadcaster
 from loadforge.dashboard.server import DashboardServer, create_app
-from loadforge.metrics.models import EndpointMetrics, MetricSnapshot
-from tests.conftest import _get_free_port
+from tests.conftest import _get_free_port, make_snapshot
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
-
-
-def _make_snapshot(**overrides: object) -> MetricSnapshot:
-    """Create a MetricSnapshot with sensible defaults."""
-    defaults: dict[str, object] = {
-        "timestamp": 1000.0,
-        "elapsed_seconds": 10.0,
-        "active_users": 50,
-        "total_requests": 500,
-        "requests_per_second": 50.0,
-        "latency_min": 1.0,
-        "latency_max": 200.0,
-        "latency_avg": 15.0,
-        "latency_p50": 10.0,
-        "latency_p75": 20.0,
-        "latency_p90": 30.0,
-        "latency_p95": 50.0,
-        "latency_p99": 100.0,
-        "latency_p999": 180.0,
-        "total_errors": 5,
-        "error_rate": 0.01,
-        "errors_by_status": {500: 3, 503: 2},
-        "errors_by_type": {"ConnectionError": 2},
-        "endpoints": {
-            "List Items": EndpointMetrics(
-                name="List Items",
-                request_count=300,
-                error_count=2,
-                error_rate=0.0067,
-                requests_per_second=30.0,
-                latency_min=1.0,
-                latency_max=150.0,
-                latency_avg=12.0,
-                latency_p50=8.0,
-                latency_p75=16.0,
-                latency_p90=25.0,
-                latency_p95=40.0,
-                latency_p99=90.0,
-            ),
-        },
-    }
-    defaults.update(overrides)
-    return MetricSnapshot(**defaults)  # type: ignore[arg-type]
 
 
 @pytest.fixture
@@ -98,7 +54,7 @@ async def test_websocket_connect_and_receive(
         aiohttp.ClientSession() as session,
         session.ws_connect(f"http://localhost:{port}/ws/metrics") as ws,
     ):
-        snapshot = _make_snapshot()
+        snapshot = make_snapshot()
         broadcaster.on_snapshot(snapshot)
 
         msg = await asyncio.wait_for(ws.receive(), timeout=5.0)
@@ -122,7 +78,7 @@ async def test_websocket_multiple_clients(
     ):
         assert broadcaster.client_count == 2
 
-        snapshot = _make_snapshot(active_users=42)
+        snapshot = make_snapshot(active_users=42)
         broadcaster.on_snapshot(snapshot)
 
         msg1 = await asyncio.wait_for(ws1.receive(), timeout=5.0)
@@ -148,7 +104,7 @@ async def test_websocket_disconnect_cleanup(
         # The server-side handler unsubscribes when it detects the
         # disconnect (on its next send attempt or read).  Send a snapshot
         # to trigger the server to attempt a write, then wait.
-        snapshot = _make_snapshot()
+        snapshot = make_snapshot()
         broadcaster.on_snapshot(snapshot)
         await asyncio.sleep(0.5)
         assert broadcaster.client_count == 0
@@ -162,7 +118,7 @@ async def test_message_format_validation(
         aiohttp.ClientSession() as session,
         session.ws_connect(f"http://localhost:{port}/ws/metrics") as ws,
     ):
-        snapshot = _make_snapshot()
+        snapshot = make_snapshot()
         broadcaster.on_snapshot(snapshot)
 
         msg = await asyncio.wait_for(ws.receive(), timeout=5.0)

@@ -9,27 +9,31 @@ import {
   YAxis,
 } from "recharts";
 import type { SnapshotData } from "../types/metrics";
+import {
+  AXIS_FONT_SIZE,
+  AXIS_STROKE,
+  CHART_COLORS,
+  GRID_STROKE,
+  TOOLTIP_STYLE,
+} from "../utils/chartTheme";
+import { formatElapsed, formatElapsedLabel } from "../utils/format";
 
 interface Props {
   snapshots: SnapshotData[];
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  "400": "#f59e0b",
+  "400": CHART_COLORS.orange,
   "401": "#f97316",
   "403": "#f97316",
-  "404": "#a855f7",
-  "429": "#06b6d4",
-  "500": "#ef4444",
+  "404": CHART_COLORS.purple,
+  "429": CHART_COLORS.cyan,
+  "500": CHART_COLORS.red,
   "502": "#dc2626",
   "503": "#b91c1c",
 };
 
-const DEFAULT_COLOR = "#6b7280";
-
-function formatElapsed(seconds: number): string {
-  return `${Math.round(seconds)}s`;
-}
+const DEFAULT_COLOR = CHART_COLORS.gray;
 
 export default function ErrorChart({ snapshots }: Props) {
   // Collect all unique status codes across snapshots
@@ -66,22 +70,17 @@ export default function ErrorChart({ snapshots }: Props) {
       </h3>
       <ResponsiveContainer width="100%" height={250}>
         <AreaChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+          <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
           <XAxis
             dataKey="elapsed_seconds"
             tickFormatter={formatElapsed}
-            stroke="#6b7280"
-            fontSize={12}
+            stroke={AXIS_STROKE}
+            fontSize={AXIS_FONT_SIZE}
           />
-          <YAxis stroke="#6b7280" fontSize={12} allowDecimals={false} />
+          <YAxis stroke={AXIS_STROKE} fontSize={AXIS_FONT_SIZE} allowDecimals={false} />
           <Tooltip
-            contentStyle={{
-              backgroundColor: "#1f2937",
-              border: "1px solid #374151",
-              borderRadius: "0.5rem",
-              color: "#f3f4f6",
-            }}
-            labelFormatter={(v: number) => `${formatElapsed(v)} elapsed`}
+            contentStyle={TOOLTIP_STYLE}
+            labelFormatter={formatElapsedLabel}
           />
           {hasStatusBreakdown ? (
             statusCodes.map((code) => (
@@ -104,8 +103,8 @@ export default function ErrorChart({ snapshots }: Props) {
               type="monotone"
               dataKey="total"
               name="Errors"
-              stroke="#ef4444"
-              fill="#ef4444"
+              stroke={CHART_COLORS.red}
+              fill={CHART_COLORS.red}
               fillOpacity={0.2}
               strokeWidth={2}
               dot={false}

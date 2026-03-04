@@ -1,4 +1,5 @@
 import type { ConnectionStatus, SnapshotData } from "../types/metrics";
+import { formatElapsed } from "../utils/format";
 import ConcurrencyChart from "./ConcurrencyChart";
 import ConnectionStatusIndicator from "./ConnectionStatus";
 import ErrorChart from "./ErrorChart";
@@ -12,12 +13,6 @@ interface Props {
   latestSnapshot: SnapshotData | null;
   previousSnapshot: SnapshotData | null;
   connectionStatus: ConnectionStatus;
-}
-
-function formatElapsed(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
 export default function Dashboard({

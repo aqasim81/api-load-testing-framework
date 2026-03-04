@@ -55,8 +55,10 @@ export function useWebSocket(): UseWebSocketResult {
         if (isSnapshotMessage(parsed)) {
           const snapshot = parsed.data;
           setSnapshots((prev) => {
-            const next = [...prev, snapshot];
-            return next.length > MAX_SNAPSHOTS ? next.slice(-MAX_SNAPSHOTS) : next;
+            if (prev.length < MAX_SNAPSHOTS) return [...prev, snapshot];
+            const next = prev.slice(1);
+            next.push(snapshot);
+            return next;
           });
         }
       } catch {

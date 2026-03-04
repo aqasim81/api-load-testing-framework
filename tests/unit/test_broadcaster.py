@@ -7,64 +7,22 @@ import json
 import threading
 
 from loadforge.dashboard.broadcaster import SnapshotBroadcaster, _serialize_snapshot
-from loadforge.metrics.models import EndpointMetrics, MetricSnapshot
-
-
-def _make_snapshot(**overrides: object) -> MetricSnapshot:
-    """Create a MetricSnapshot with sensible defaults."""
-    defaults: dict[str, object] = {
-        "timestamp": 1000.0,
-        "elapsed_seconds": 10.0,
-        "active_users": 50,
-        "total_requests": 500,
-        "requests_per_second": 50.0,
-        "latency_min": 1.0,
-        "latency_max": 200.0,
-        "latency_avg": 15.0,
-        "latency_p50": 10.0,
-        "latency_p75": 20.0,
-        "latency_p90": 30.0,
-        "latency_p95": 50.0,
-        "latency_p99": 100.0,
-        "latency_p999": 180.0,
-        "total_errors": 5,
-        "error_rate": 0.01,
-        "errors_by_status": {500: 3, 503: 2},
-        "errors_by_type": {"ConnectionError": 2},
-        "endpoints": {
-            "List Items": EndpointMetrics(
-                name="List Items",
-                request_count=300,
-                error_count=2,
-                error_rate=0.0067,
-                requests_per_second=30.0,
-                latency_min=1.0,
-                latency_max=150.0,
-                latency_avg=12.0,
-                latency_p50=8.0,
-                latency_p75=16.0,
-                latency_p90=25.0,
-                latency_p95=40.0,
-                latency_p99=90.0,
-            ),
-        },
-    }
-    defaults.update(overrides)
-    return MetricSnapshot(**defaults)  # type: ignore[arg-type]
+from loadforge.metrics.models import EndpointMetrics
+from tests.conftest import make_snapshot
 
 
 class TestSerializeSnapshot:
     """Tests for the _serialize_snapshot helper."""
 
     def test_top_level_structure(self) -> None:
-        snapshot = _make_snapshot()
+        snapshot = make_snapshot()
         result = json.loads(_serialize_snapshot(snapshot))
 
         assert result["type"] == "snapshot"
         assert "data" in result
 
     def test_data_fields(self) -> None:
-        snapshot = _make_snapshot()
+        snapshot = make_snapshot()
         data = json.loads(_serialize_snapshot(snapshot))["data"]
 
         assert data["timestamp"] == 1000.0
@@ -74,7 +32,7 @@ class TestSerializeSnapshot:
         assert data["total_requests"] == 500
 
     def test_latency_nested_object(self) -> None:
-        snapshot = _make_snapshot()
+        snapshot = make_snapshot()
         latency = json.loads(_serialize_snapshot(snapshot))["data"]["latency"]
 
         assert latency["p50"] == 10.0
@@ -86,7 +44,7 @@ class TestSerializeSnapshot:
         assert latency["avg"] == 15.0
 
     def test_errors_object(self) -> None:
-        snapshot = _make_snapshot()
+        snapshot = make_snapshot()
         errors = json.loads(_serialize_snapshot(snapshot))["data"]["errors"]
 
         assert errors["total"] == 5
@@ -94,7 +52,7 @@ class TestSerializeSnapshot:
         assert errors["by_status"] == {"500": 3, "503": 2}
 
     def test_endpoints_as_list(self) -> None:
-        snapshot = _make_snapshot()
+        snapshot = make_snapshot()
         endpoints = json.loads(_serialize_snapshot(snapshot))["data"]["endpoints"]
 
         assert isinstance(endpoints, list)
@@ -140,7 +98,7 @@ class TestSerializeSnapshot:
                 latency_p99=200.0,
             ),
         }
-        snapshot = _make_snapshot(endpoints=endpoints)
+        snapshot = make_snapshot(endpoints=endpoints)
         result = json.loads(_serialize_snapshot(snapshot))["data"]["endpoints"]
 
         assert len(result) == 2
@@ -155,13 +113,13 @@ class TestSerializeSnapshot:
         assert create["p99"] == 200.0
 
     def test_empty_endpoints(self) -> None:
-        snapshot = _make_snapshot(endpoints={})
+        snapshot = make_snapshot(endpoints={})
         data = json.loads(_serialize_snapshot(snapshot))["data"]
 
         assert data["endpoints"] == []
 
     def test_empty_errors(self) -> None:
-        snapshot = _make_snapshot(
+        snapshot = make_snapshot(
             total_errors=0,
             error_rate=0.0,
             errors_by_status={},
@@ -213,7 +171,7 @@ class TestSnapshotBroadcaster:
 
     def test_on_snapshot_without_loop_is_noop(self) -> None:
         broadcaster = SnapshotBroadcaster()
-        snapshot = _make_snapshot()
+        snapshot = make_snapshot()
         # Should not raise
         broadcaster.on_snapshot(snapshot)
 
@@ -226,7 +184,7 @@ class TestSnapshotBroadcaster:
             q1 = loop.run_until_complete(_subscribe_async(broadcaster))
             q2 = loop.run_until_complete(_subscribe_async(broadcaster))
 
-            snapshot = _make_snapshot()
+            snapshot = make_snapshot()
             broadcaster.on_snapshot(snapshot)
 
             # Process the call_soon_threadsafe callbacks
@@ -253,7 +211,7 @@ class TestSnapshotBroadcaster:
         try:
             q = loop.run_until_complete(_subscribe_async(broadcaster))
 
-            snapshot = _make_snapshot()
+            snapshot = make_snapshot()
 
             # Fill the queue
             for _ in range(50):
@@ -274,7 +232,7 @@ class TestSnapshotBroadcaster:
 
         try:
             q = loop.run_until_complete(_subscribe_async(broadcaster))
-            snapshot = _make_snapshot()
+            snapshot = make_snapshot()
 
             received: list[str] = []
 

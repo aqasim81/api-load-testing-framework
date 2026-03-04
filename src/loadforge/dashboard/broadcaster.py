@@ -65,7 +65,8 @@ class SnapshotBroadcaster:
         q: asyncio.Queue[str] = asyncio.Queue(maxsize=_CLIENT_QUEUE_MAX)
         with self._clients_lock:
             self._clients.add(q)
-        logger.debug("Client subscribed (total=%d)", self.client_count)
+            count = len(self._clients)
+        logger.debug("Client subscribed (total=%d)", count)
         return q
 
     def unsubscribe(self, q: asyncio.Queue[str]) -> None:
@@ -76,7 +77,8 @@ class SnapshotBroadcaster:
         """
         with self._clients_lock:
             self._clients.discard(q)
-        logger.debug("Client unsubscribed (total=%d)", self.client_count)
+            count = len(self._clients)
+        logger.debug("Client unsubscribed (total=%d)", count)
 
     def on_snapshot(self, snapshot: MetricSnapshot) -> None:
         """Serialize a snapshot and fan out to all connected clients.
@@ -91,10 +93,12 @@ class SnapshotBroadcaster:
         if self._loop is None:
             return
 
-        json_str = _serialize_snapshot(snapshot)
-
         with self._clients_lock:
+            if not self._clients:
+                return
             clients = set(self._clients)
+
+        json_str = _serialize_snapshot(snapshot)
 
         for q in clients:
             with contextlib.suppress(asyncio.QueueFull, RuntimeError):

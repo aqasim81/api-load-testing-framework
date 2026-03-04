@@ -8,13 +8,17 @@ import {
   YAxis,
 } from "recharts";
 import type { SnapshotData } from "../types/metrics";
+import {
+  AXIS_FONT_SIZE,
+  AXIS_STROKE,
+  CHART_COLORS,
+  GRID_STROKE,
+  TOOLTIP_STYLE,
+} from "../utils/chartTheme";
+import { formatElapsed, formatElapsedLabel } from "../utils/format";
 
 interface Props {
   snapshots: SnapshotData[];
-}
-
-function formatElapsed(seconds: number): string {
-  return `${Math.round(seconds)}s`;
 }
 
 export default function ConcurrencyChart({ snapshots }: Props) {
@@ -25,29 +29,24 @@ export default function ConcurrencyChart({ snapshots }: Props) {
       </h3>
       <ResponsiveContainer width="100%" height={250}>
         <AreaChart data={snapshots}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+          <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
           <XAxis
             dataKey="elapsed_seconds"
             tickFormatter={formatElapsed}
-            stroke="#6b7280"
-            fontSize={12}
+            stroke={AXIS_STROKE}
+            fontSize={AXIS_FONT_SIZE}
           />
-          <YAxis stroke="#6b7280" fontSize={12} allowDecimals={false} />
+          <YAxis stroke={AXIS_STROKE} fontSize={AXIS_FONT_SIZE} allowDecimals={false} />
           <Tooltip
-            contentStyle={{
-              backgroundColor: "#1f2937",
-              border: "1px solid #374151",
-              borderRadius: "0.5rem",
-              color: "#f3f4f6",
-            }}
-            labelFormatter={(v: number) => `${formatElapsed(v)} elapsed`}
+            contentStyle={TOOLTIP_STYLE}
+            labelFormatter={formatElapsedLabel}
           />
           <Area
             type="monotone"
             dataKey="active_users"
             name="Active Users"
-            stroke="#3b82f6"
-            fill="#3b82f6"
+            stroke={CHART_COLORS.blue}
+            fill={CHART_COLORS.blue}
             fillOpacity={0.2}
             strokeWidth={2}
             dot={false}

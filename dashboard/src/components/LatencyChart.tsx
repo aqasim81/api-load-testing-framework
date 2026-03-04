@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
   Area,
   AreaChart,
@@ -8,6 +9,14 @@ import {
   YAxis,
 } from "recharts";
 import type { SnapshotData } from "../types/metrics";
+import {
+  AXIS_FONT_SIZE,
+  AXIS_STROKE,
+  CHART_COLORS,
+  GRID_STROKE,
+  TOOLTIP_STYLE,
+} from "../utils/chartTheme";
+import { formatElapsed, formatElapsedLabel } from "../utils/format";
 
 interface Props {
   snapshots: SnapshotData[];
@@ -20,17 +29,17 @@ interface ChartPoint {
   p99: number;
 }
 
-function formatElapsed(seconds: number): string {
-  return `${Math.round(seconds)}s`;
-}
-
 export default function LatencyChart({ snapshots }: Props) {
-  const data: ChartPoint[] = snapshots.map((s) => ({
-    elapsed_seconds: s.elapsed_seconds,
-    p50: s.latency.p50,
-    p95: s.latency.p95,
-    p99: s.latency.p99,
-  }));
+  const data: ChartPoint[] = useMemo(
+    () =>
+      snapshots.map((s) => ({
+        elapsed_seconds: s.elapsed_seconds,
+        p50: s.latency.p50,
+        p95: s.latency.p95,
+        p99: s.latency.p99,
+      })),
+    [snapshots],
+  );
 
   return (
     <div className="rounded-lg bg-gray-900 border border-gray-800 p-4">
@@ -39,30 +48,25 @@ export default function LatencyChart({ snapshots }: Props) {
       </h3>
       <ResponsiveContainer width="100%" height={250}>
         <AreaChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+          <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
           <XAxis
             dataKey="elapsed_seconds"
             tickFormatter={formatElapsed}
-            stroke="#6b7280"
-            fontSize={12}
+            stroke={AXIS_STROKE}
+            fontSize={AXIS_FONT_SIZE}
           />
-          <YAxis stroke="#6b7280" fontSize={12} />
+          <YAxis stroke={AXIS_STROKE} fontSize={AXIS_FONT_SIZE} />
           <Tooltip
-            contentStyle={{
-              backgroundColor: "#1f2937",
-              border: "1px solid #374151",
-              borderRadius: "0.5rem",
-              color: "#f3f4f6",
-            }}
-            labelFormatter={(v: number) => `${formatElapsed(v)} elapsed`}
+            contentStyle={TOOLTIP_STYLE}
+            labelFormatter={formatElapsedLabel}
             formatter={(value: number) => [`${value.toFixed(1)}ms`]}
           />
           <Area
             type="monotone"
             dataKey="p99"
             name="p99"
-            stroke="#ef4444"
-            fill="#ef4444"
+            stroke={CHART_COLORS.red}
+            fill={CHART_COLORS.red}
             fillOpacity={0.15}
             strokeWidth={1.5}
             dot={false}
@@ -72,8 +76,8 @@ export default function LatencyChart({ snapshots }: Props) {
             type="monotone"
             dataKey="p95"
             name="p95"
-            stroke="#f59e0b"
-            fill="#f59e0b"
+            stroke={CHART_COLORS.orange}
+            fill={CHART_COLORS.orange}
             fillOpacity={0.2}
             strokeWidth={1.5}
             dot={false}
@@ -83,8 +87,8 @@ export default function LatencyChart({ snapshots }: Props) {
             type="monotone"
             dataKey="p50"
             name="p50"
-            stroke="#22c55e"
-            fill="#22c55e"
+            stroke={CHART_COLORS.green}
+            fill={CHART_COLORS.green}
             fillOpacity={0.25}
             strokeWidth={1.5}
             dot={false}
