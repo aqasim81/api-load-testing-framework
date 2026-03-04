@@ -17,30 +17,7 @@ runner = CliRunner()
 # Fixtures
 # ---------------------------------------------------------------------------
 
-
-@pytest.fixture
-def cli_scenario(tmp_path: Path, sync_echo_server: str) -> Path:
-    """Create a temporary scenario file pointing at the sync echo server."""
-    code = f'''\
-from __future__ import annotations
-
-from loadforge import scenario, task, HttpClient
-
-
-@scenario(
-    name="CLI Test Scenario",
-    base_url="{sync_echo_server}",
-    think_time=(0.01, 0.02),
-)
-class CLITestScenario:
-
-    @task(weight=1)
-    async def get_echo(self, client: HttpClient) -> None:
-        await client.get("/echo/test", name="Echo Test")
-'''
-    path = tmp_path / "cli_scenario.py"
-    path.write_text(code)
-    return path
+# Uses ``scenario_file`` from tests/conftest.py for the standard echo scenario.
 
 
 @pytest.fixture
@@ -167,13 +144,13 @@ def test_init_numeric_prefix(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 
 
 @pytest.mark.slow
-def test_run_basic(cli_scenario: Path):
+def test_run_basic(scenario_file: Path):
     """loadforge run executes a scenario and exits 0."""
     result = runner.invoke(
         app,
         [
             "run",
-            str(cli_scenario),
+            str(scenario_file),
             "--users",
             "2",
             "--duration",
@@ -183,18 +160,18 @@ def test_run_basic(cli_scenario: Path):
             "--no-report",
         ],
     )
-    assert result.exit_code == 0, f"stderr: {result.output}"
+    assert result.exit_code == 0, f"output: {result.output}"
     assert "Test Complete" in result.output or "completed successfully" in result.output
 
 
 @pytest.mark.slow
-def test_run_ramp_pattern(cli_scenario: Path):
+def test_run_ramp_pattern(scenario_file: Path):
     """loadforge run with --pattern ramp works."""
     result = runner.invoke(
         app,
         [
             "run",
-            str(cli_scenario),
+            str(scenario_file),
             "--users",
             "1",
             "--duration",
@@ -208,17 +185,17 @@ def test_run_ramp_pattern(cli_scenario: Path):
             "--no-report",
         ],
     )
-    assert result.exit_code == 0, f"stderr: {result.output}"
+    assert result.exit_code == 0, f"output: {result.output}"
 
 
 @pytest.mark.slow
-def test_run_step_pattern(cli_scenario: Path):
+def test_run_step_pattern(scenario_file: Path):
     """loadforge run with --pattern step works."""
     result = runner.invoke(
         app,
         [
             "run",
-            str(cli_scenario),
+            str(scenario_file),
             "--users",
             "1",
             "--duration",
@@ -234,17 +211,17 @@ def test_run_step_pattern(cli_scenario: Path):
             "--no-report",
         ],
     )
-    assert result.exit_code == 0, f"stderr: {result.output}"
+    assert result.exit_code == 0, f"output: {result.output}"
 
 
 @pytest.mark.slow
-def test_run_spike_pattern(cli_scenario: Path):
+def test_run_spike_pattern(scenario_file: Path):
     """loadforge run with --pattern spike works."""
     result = runner.invoke(
         app,
         [
             "run",
-            str(cli_scenario),
+            str(scenario_file),
             "--users",
             "2",
             "--duration",
@@ -260,13 +237,13 @@ def test_run_spike_pattern(cli_scenario: Path):
 
 
 @pytest.mark.slow
-def test_run_diurnal_pattern(cli_scenario: Path):
+def test_run_diurnal_pattern(scenario_file: Path):
     """loadforge run with --pattern diurnal works."""
     result = runner.invoke(
         app,
         [
             "run",
-            str(cli_scenario),
+            str(scenario_file),
             "--users",
             "4",
             "--duration",
@@ -281,13 +258,13 @@ def test_run_diurnal_pattern(cli_scenario: Path):
     assert result.exit_code == 0, f"output: {result.output}"
 
 
-def test_run_invalid_pattern(cli_scenario: Path):
+def test_run_invalid_pattern(scenario_file: Path):
     """--pattern invalid exits non-zero."""
     result = runner.invoke(
         app,
         [
             "run",
-            str(cli_scenario),
+            str(scenario_file),
             "--pattern",
             "invalid_pattern",
             "--no-report",
@@ -296,13 +273,13 @@ def test_run_invalid_pattern(cli_scenario: Path):
     assert result.exit_code != 0
 
 
-def test_run_ramp_requires_ramp_to(cli_scenario: Path):
+def test_run_ramp_requires_ramp_to(scenario_file: Path):
     """--pattern ramp without --ramp-to gives an error."""
     result = runner.invoke(
         app,
         [
             "run",
-            str(cli_scenario),
+            str(scenario_file),
             "--pattern",
             "ramp",
             "--no-report",
@@ -311,13 +288,13 @@ def test_run_ramp_requires_ramp_to(cli_scenario: Path):
     assert result.exit_code != 0
 
 
-def test_run_step_requires_step_size(cli_scenario: Path):
+def test_run_step_requires_step_size(scenario_file: Path):
     """--pattern step without --step-size gives an error."""
     result = runner.invoke(
         app,
         [
             "run",
-            str(cli_scenario),
+            str(scenario_file),
             "--pattern",
             "step",
             "--no-report",
@@ -364,13 +341,13 @@ def test_fail_on_error_rate_triggers(error_scenario: Path):
 
 
 @pytest.mark.slow
-def test_fail_on_error_rate_passes(cli_scenario: Path):
+def test_fail_on_error_rate_passes(scenario_file: Path):
     """--fail-on-error-rate exits 0 when error rate is below threshold."""
     result = runner.invoke(
         app,
         [
             "run",
-            str(cli_scenario),
+            str(scenario_file),
             "--users",
             "2",
             "--duration",
@@ -382,7 +359,7 @@ def test_fail_on_error_rate_passes(cli_scenario: Path):
             "--no-report",
         ],
     )
-    assert result.exit_code == 0, f"stderr: {result.output}"
+    assert result.exit_code == 0, f"output: {result.output}"
 
 
 # ---------------------------------------------------------------------------
@@ -405,13 +382,13 @@ def test_dashboard_missing_result_json(tmp_path: Path):
 
 
 @pytest.mark.slow
-def test_run_with_dashboard_flag(cli_scenario: Path):
+def test_run_with_dashboard_flag(scenario_file: Path):
     """--dashboard flag starts the live dashboard during the test."""
     result = runner.invoke(
         app,
         [
             "run",
-            str(cli_scenario),
+            str(scenario_file),
             "--users",
             "2",
             "--duration",
