@@ -137,11 +137,11 @@
 > [Detailed plan](./phases/phase-8-polish-documentation-examples.md) |
 > Dependencies: All phases
 
-- [ ] **Plan** — Review [phase plan](./phases/phase-8-polish-documentation-examples.md) and the relevant sections of [implementation_plan.md](./implementation_plan.md)
-- [ ] **Review plan** — Confirm the scope of polish, docs, and CI/CD tasks
-- [ ] **Implement** — Complete all documentation, examples, CI/CD, and polish tasks
-- [ ] **Review implementation** — Full project review: README accuracy, example scenarios work, CI passes
-- [ ] **Test** — Run `make validate` + `uv run pytest -v` (all tests) + manual verification plan from implementation_plan.md
-- [ ] **Fix issues** — Address any remaining issues
-- [ ] **Update checklist** — Mark all items complete; finalize CLAUDE.md "Current Status"
-- [ ] **Project complete** — All 8 phases done, ready for GitHub showcase
+- [x] **Plan** — Review [phase plan](./phases/phase-8-polish-documentation-examples.md) and the relevant sections of [implementation_plan.md](./implementation_plan.md)
+- [x] **Review plan** — Confirm the scope of polish, docs, and CI/CD tasks
+- [x] **Implement** — Complete all documentation, examples, CI/CD, and polish tasks
+- [x] **Review implementation** — Full project review: README accuracy, example scenarios work, CI passes
+- [x] **Test** — Run `make validate` + `uv run pytest -v` (all tests) + manual verification plan from implementation_plan.md
+- [x] **Fix issues** — Address any remaining issues
+- [x] **Update checklist** — Mark all items complete; finalize CLAUDE.md "Current Status"
+- [x] **Project complete** — All 8 phases done, ready for GitHub showcase
