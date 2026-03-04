@@ -322,12 +322,12 @@ def run_cmd(
     enable_dashboard: bool = typer.Option(
         False,
         "--dashboard",
-        help="Start the live dashboard server (available in Phase 7).",
+        help="Start the live dashboard server.",
     ),
     dashboard_port: int = typer.Option(
         8089,
         "--dashboard-port",
-        help="Port for the live dashboard (available in Phase 7).",
+        help="Port for the live dashboard.",
     ),
 ) -> None:
     """Execute a load test scenario with live terminal output.
@@ -348,9 +348,6 @@ def run_cmd(
 
     log_level = logging.DEBUG if verbose else logging.INFO
 
-    def _on_snapshot(snapshot: MetricSnapshot, live: Live) -> None:
-        live.update(_make_live_table(snapshot, snapshot.elapsed_seconds))
-
     console.print(
         Panel(
             f"[bold]Scenario:[/bold] {scenario_file.name}\n"
@@ -362,8 +359,25 @@ def run_cmd(
         )
     )
 
+    # Start dashboard server if requested (lazy import for zero overhead)
+    broadcaster = None
+    dashboard_server = None
+
     if enable_dashboard:
-        console.print("[yellow]Live dashboard will be available in Phase 7.[/yellow]")
+        from loadforge.dashboard.broadcaster import SnapshotBroadcaster
+        from loadforge.dashboard.server import DashboardServer, create_app
+
+        broadcaster = SnapshotBroadcaster()
+        app = create_app(broadcaster)
+        dashboard_server = DashboardServer(app, broadcaster, dashboard_port)
+        try:
+            dashboard_server.start()
+        except LoadForgeError as exc:
+            console.print(f"[red]Dashboard failed to start:[/red] {exc}")
+            raise typer.Exit(code=1) from exc
+        console.print(
+            f"[green]Dashboard running at http://localhost:{dashboard_port}[/green]"
+        )
 
     # Run with live display
     try:
@@ -373,18 +387,27 @@ def run_cmd(
             refresh_per_second=2,
             transient=True,
         ) as live:
+
+            def _combined_snapshot(snapshot: MetricSnapshot) -> None:
+                live.update(_make_live_table(snapshot, snapshot.elapsed_seconds))
+                if broadcaster is not None:
+                    broadcaster.on_snapshot(snapshot)
+
             test_runner = LoadTestRunner(
                 scenario_path=scenario_file,
                 pattern=load_pattern,
                 duration_seconds=duration,
                 num_workers=workers,
-                on_snapshot=lambda snap: _on_snapshot(snap, live),
+                on_snapshot=_combined_snapshot,
                 log_level=log_level,
             )
             result = test_runner.run()
     except LoadForgeError as exc:
         console.print(f"[red]Load test failed:[/red] {exc}")
         raise typer.Exit(code=1) from exc
+    finally:
+        if dashboard_server is not None:
+            dashboard_server.stop()
 
     # Print final summary
     _print_summary(result)
