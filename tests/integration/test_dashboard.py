@@ -213,3 +213,33 @@ async def test_server_start_stop(
 
     # Stop is handled by fixture teardown — verify it doesn't raise
     server.stop()
+
+
+def test_dashboard_server_start_timeout() -> None:
+    """DashboardServer raises DashboardError when startup times out."""
+    from unittest.mock import MagicMock, patch
+
+    from loadforge._internal.errors import DashboardError
+
+    port = _get_free_port()
+    broadcaster = SnapshotBroadcaster()
+    app = create_app(broadcaster)
+    server = DashboardServer(app, broadcaster, port)
+
+    # Replace the uvicorn server with a mock whose ``started`` is always
+    # False.  The background thread will call mock.serve() which returns
+    # a coroutine-like mock — harmless.
+    fake_server = MagicMock()
+    fake_server.started = False
+    fake_server.serve = MagicMock(return_value=asyncio.sleep(10))
+    server._server = fake_server
+
+    with (
+        patch("loadforge.dashboard.server._STARTUP_TIMEOUT_SECS", 0.2),
+        patch("loadforge.dashboard.server._STARTUP_POLL_INTERVAL", 0.05),
+        pytest.raises(DashboardError, match="failed to start"),
+    ):
+        server.start()
+
+    # Cleanup: the background thread is running asyncio.sleep(10),
+    # just let it be reaped as a daemon thread.

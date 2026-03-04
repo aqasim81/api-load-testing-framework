@@ -107,6 +107,53 @@ class TestSerializeSnapshot:
         assert ep["p50"] == 8.0
         assert ep["p95"] == 40.0
 
+    def test_multiple_endpoints(self) -> None:
+        endpoints = {
+            "List Items": EndpointMetrics(
+                name="List Items",
+                request_count=300,
+                error_count=2,
+                error_rate=0.0067,
+                requests_per_second=30.0,
+                latency_min=1.0,
+                latency_max=150.0,
+                latency_avg=12.0,
+                latency_p50=8.0,
+                latency_p75=16.0,
+                latency_p90=25.0,
+                latency_p95=40.0,
+                latency_p99=90.0,
+            ),
+            "Create Item": EndpointMetrics(
+                name="Create Item",
+                request_count=200,
+                error_count=3,
+                error_rate=0.015,
+                requests_per_second=20.0,
+                latency_min=5.0,
+                latency_max=300.0,
+                latency_avg=25.0,
+                latency_p50=18.0,
+                latency_p75=30.0,
+                latency_p90=50.0,
+                latency_p95=80.0,
+                latency_p99=200.0,
+            ),
+        }
+        snapshot = _make_snapshot(endpoints=endpoints)
+        result = json.loads(_serialize_snapshot(snapshot))["data"]["endpoints"]
+
+        assert len(result) == 2
+        names = {ep["name"] for ep in result}
+        assert names == {"List Items", "Create Item"}
+
+        create = next(ep for ep in result if ep["name"] == "Create Item")
+        assert create["rps"] == 20.0
+        assert create["request_count"] == 200
+        assert create["error_count"] == 3
+        assert create["p50"] == 18.0
+        assert create["p99"] == 200.0
+
     def test_empty_endpoints(self) -> None:
         snapshot = _make_snapshot(endpoints={})
         data = json.loads(_serialize_snapshot(snapshot))["data"]

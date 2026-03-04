@@ -59,7 +59,7 @@ def create_app(broadcaster: SnapshotBroadcaster) -> FastAPI:
                 await ws.send_text(msg)
         except WebSocketDisconnect:
             pass
-        except Exception:
+        except (ConnectionError, asyncio.CancelledError, RuntimeError):
             logger.debug("WebSocket connection closed unexpectedly")
         finally:
             broadcaster.unsubscribe(q)
