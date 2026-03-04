@@ -386,27 +386,27 @@ def test_fail_on_error_rate_passes(cli_scenario: Path):
 
 
 # ---------------------------------------------------------------------------
-# Tests: placeholder commands
+# Tests: report and dashboard commands
 # ---------------------------------------------------------------------------
 
 
-def test_report_placeholder(tmp_path: Path):
-    """loadforge report prints Phase 6 message."""
+def test_report_missing_result_json(tmp_path: Path):
+    """loadforge report exits 1 when result.json is missing."""
     result = runner.invoke(app, ["report", str(tmp_path)])
-    assert result.exit_code == 0
-    assert "Phase 6" in result.output
+    assert result.exit_code == 1
+    assert "No result.json" in result.output
 
 
-def test_dashboard_placeholder(tmp_path: Path):
-    """loadforge dashboard prints Phase 7 message."""
+def test_dashboard_missing_result_json(tmp_path: Path):
+    """loadforge dashboard exits 1 when result.json is missing."""
     result = runner.invoke(app, ["dashboard", str(tmp_path)])
-    assert result.exit_code == 0
-    assert "Phase 7" in result.output
+    assert result.exit_code == 1
+    assert "No result.json" in result.output
 
 
 @pytest.mark.slow
 def test_run_with_dashboard_flag(cli_scenario: Path):
-    """--dashboard flag prints Phase 7 message but run still succeeds."""
+    """--dashboard flag starts the live dashboard during the test."""
     result = runner.invoke(
         app,
         [
@@ -423,4 +423,4 @@ def test_run_with_dashboard_flag(cli_scenario: Path):
         ],
     )
     assert result.exit_code == 0, f"output: {result.output}"
-    assert "Phase 7" in result.output
+    assert "Dashboard running" in result.output
