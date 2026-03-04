@@ -40,16 +40,20 @@ def report_cmd(
         console.print(f"[red]Failed to load result: {exc}[/red]")
         raise typer.Exit(code=1) from exc
 
-    if fmt == "html":
-        report_path = results_dir / "report.html"
-        export_html(result, report_path)
-        console.print(f"[green]Report generated at {report_path}[/green]")
-    elif fmt == "csv":
-        csv_path = results_dir / "report.csv"
-        export_csv(result, csv_path)
-        console.print(f"[green]CSV exported to {csv_path}[/green]")
-    elif fmt == "json":
-        console.print(f"[dim]JSON already at {json_path}[/dim]")
-    else:
-        console.print(f"[red]Unknown format: {fmt}. Use html, json, or csv.[/red]")
-        raise typer.Exit(code=1)
+    try:
+        if fmt == "html":
+            report_path = results_dir / "report.html"
+            export_html(result, report_path)
+            console.print(f"[green]Report generated at {report_path}[/green]")
+        elif fmt == "csv":
+            csv_path = results_dir / "report.csv"
+            export_csv(result, csv_path)
+            console.print(f"[green]CSV exported to {csv_path}[/green]")
+        elif fmt == "json":
+            console.print(f"[dim]JSON already at {json_path}[/dim]")
+        else:
+            console.print(f"[red]Unknown format: {fmt}. Use html, json, or csv.[/red]")
+            raise typer.Exit(code=1)
+    except (OSError, ValueError, RuntimeError) as exc:
+        console.print(f"[red]Report generation failed: {exc}[/red]")
+        raise typer.Exit(code=1) from exc

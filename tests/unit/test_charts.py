@@ -162,6 +162,13 @@ class TestLatencyHistogramChart:
         fig = latency_histogram_chart([])
         assert len(fig.data) == 0
 
+    def test_zero_request_snapshots_returns_empty(self):
+        snapshots = [_make_snapshot(float(i), rps=0.0) for i in range(5)]
+        for s in snapshots:
+            s.total_requests = 0
+        fig = latency_histogram_chart(snapshots)
+        assert len(fig.data) == 0
+
 
 # ---------------------------------------------------------------------------
 # Latency by endpoint

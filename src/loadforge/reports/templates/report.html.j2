@@ -83,6 +83,7 @@
       transition: var(--transition);
     }
     .theme-toggle:hover { border-color: var(--accent); }
+    .theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
     /* Summary grid */
     .summary-grid {
@@ -221,7 +222,7 @@
         <h1>LoadForge Report</h1>
         <div class="meta">Generated {{ generated_at }}</div>
       </div>
-      <button class="theme-toggle" onclick="toggleTheme()">Toggle Theme</button>
+      <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle color theme" aria-pressed="false">Toggle Theme</button>
     </header>
 
     {% include "partials/summary.html.j2" %}
@@ -237,15 +238,15 @@
           <table class="data-table">
             <thead>
               <tr>
-                <th>Elapsed (s)</th>
-                <th>Users</th>
-                <th>RPS</th>
-                <th>Requests</th>
-                <th>p50 (ms)</th>
-                <th>p95 (ms)</th>
-                <th>p99 (ms)</th>
-                <th>Errors</th>
-                <th>Error %</th>
+                <th scope="col">Elapsed (s)</th>
+                <th scope="col">Users</th>
+                <th scope="col">RPS</th>
+                <th scope="col">Requests</th>
+                <th scope="col">p50 (ms)</th>
+                <th scope="col">p95 (ms)</th>
+                <th scope="col">p99 (ms)</th>
+                <th scope="col">Errors</th>
+                <th scope="col">Error %</th>
               </tr>
             </thead>
             <tbody>
@@ -274,7 +275,7 @@
   </div>
 
   <script>
-    var LF_FIGURES = {{ chart_figures_json }};
+    var LF_FIGURES = {{ chart_figures_json | safe }};
 
     function renderCharts(method) {
       var theme = document.documentElement.dataset.theme;
@@ -295,6 +296,8 @@
       var html = document.documentElement;
       html.dataset.theme = html.dataset.theme === 'light' ? 'dark' : 'light';
       localStorage.setItem('lf-theme', html.dataset.theme);
+      var btn = document.querySelector('.theme-toggle');
+      if (btn) btn.setAttribute('aria-pressed', html.dataset.theme === 'dark');
       renderCharts('react');
     }
 

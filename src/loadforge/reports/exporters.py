@@ -112,7 +112,7 @@ def load_result(json_path: Path) -> TestResult:
     try:
         raw = json.loads(json_path.read_text(encoding="utf-8"))
         return _dict_to_result(cast("dict[str, object]", raw))
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError) as exc:
         msg = f"Failed to load test result from {json_path}: {exc}"
         raise LoadForgeError(msg) from exc
 
@@ -168,7 +168,7 @@ def _dict_to_snapshot(data: dict[str, object]) -> MetricSnapshot:
 
     # Restore int keys for errors_by_status
     raw_by_status = cast("dict[str, int]", data.get("errors_by_status", {}))
-    errors_by_status = {int(k): v for k, v in raw_by_status.items()}
+    errors_by_status = {int(k): int(v) for k, v in raw_by_status.items()}
 
     # Reconstruct endpoints
     raw_endpoints = cast("dict[str, dict[str, object]]", data.get("endpoints", {}))
@@ -192,7 +192,10 @@ def _dict_to_snapshot(data: dict[str, object]) -> MetricSnapshot:
         total_errors=int(cast("int", data.get("total_errors", 0))),
         error_rate=float(cast("float", data.get("error_rate", 0.0))),
         errors_by_status=errors_by_status,
-        errors_by_type=cast("dict[str, int]", data.get("errors_by_type", {})),
+        errors_by_type={
+            str(k): int(v)
+            for k, v in cast("dict[str, int]", data.get("errors_by_type", {})).items()
+        },
         endpoints=endpoints,
     )
 

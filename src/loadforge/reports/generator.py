@@ -79,11 +79,11 @@ def _build_jinja_env() -> jinja2.Environment:
     """Create a Jinja2 Environment loading templates from the package.
 
     Returns:
-        Configured Jinja2 Environment with autoescape disabled for HTML
-        report output (chart JSON must be injected unescaped).
+        Configured Jinja2 Environment with autoescape enabled.  Use the
+        ``|safe`` filter in templates for trusted content (chart JSON).
     """
     loader = jinja2.PackageLoader("loadforge.reports", "templates")
-    return jinja2.Environment(loader=loader, autoescape=False)  # noqa: S701
+    return jinja2.Environment(loader=loader, autoescape=True)
 
 
 def _build_context(

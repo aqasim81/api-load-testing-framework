@@ -1,8 +1,12 @@
 <section id="errors">
   <h2>Errors</h2>
   {% if total_errors > 0 %}
-  <div id="chart-error-breakdown" class="chart-container"></div>
-  <div id="chart-error-pie" class="chart-container"></div>
+  <div id="chart-error-breakdown" class="chart-container" role="img" aria-label="Error breakdown chart showing errors by HTTP status code over time">
+    <noscript>Enable JavaScript to view this chart.</noscript>
+  </div>
+  <div id="chart-error-pie" class="chart-container" role="img" aria-label="Error distribution pie chart by endpoint">
+    <noscript>Enable JavaScript to view this chart.</noscript>
+  </div>
   {% else %}
   <p class="no-data">No errors recorded during this test run.</p>
   {% endif %}

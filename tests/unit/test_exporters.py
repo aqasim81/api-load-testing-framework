@@ -7,6 +7,9 @@ import json
 import time
 from pathlib import Path
 
+import pytest
+
+from loadforge._internal.errors import LoadForgeError
 from loadforge.metrics.models import EndpointMetrics, MetricSnapshot
 from loadforge.metrics.models import TestResult as _TestResult
 from loadforge.reports.exporters import export_csv, export_html, export_json, load_result
@@ -151,6 +154,37 @@ class TestJsonRoundTrip:
         assert data["scenario_name"] == "test_scenario"
         assert len(data["snapshots"]) == 5
 
+    def test_json_contains_all_top_level_fields(self, tmp_path: Path):
+        result = _make_result()
+        json_path = tmp_path / "result.json"
+        export_json(result, json_path)
+
+        data = json.loads(json_path.read_text(encoding="utf-8"))
+        assert data["start_time"] == 1000.0
+        assert data["end_time"] == 1005.0
+        assert data["duration_seconds"] == 5.0
+        assert data["pattern_description"] == "Constant 10 users"
+        assert data["final_summary"] is not None
+
+
+class TestLoadResultErrors:
+    def test_malformed_json_raises_loadforge_error(self, tmp_path: Path):
+        bad_path = tmp_path / "bad.json"
+        bad_path.write_text("{not valid json", encoding="utf-8")
+        with pytest.raises(LoadForgeError, match="Failed to load"):
+            load_result(bad_path)
+
+    def test_missing_required_fields_raises_loadforge_error(self, tmp_path: Path):
+        bad_path = tmp_path / "incomplete.json"
+        bad_path.write_text('{"foo": "bar"}', encoding="utf-8")
+        with pytest.raises(LoadForgeError, match="Failed to load"):
+            load_result(bad_path)
+
+    def test_file_not_found_raises_loadforge_error(self, tmp_path: Path):
+        missing = tmp_path / "does_not_exist.json"
+        with pytest.raises(LoadForgeError, match="Failed to load"):
+            load_result(missing)
+
 
 # ---------------------------------------------------------------------------
 # CSV export
@@ -181,6 +215,22 @@ class TestExportCsv:
         assert "requests_per_second" in headers
         assert "latency_p50" in headers
         assert "latency_p999" in headers
+
+    def test_csv_cell_values_match_snapshot(self, tmp_path: Path):
+        result = _make_result(snapshot_count=1)
+        csv_path = tmp_path / "report.csv"
+        export_csv(result, csv_path)
+
+        with csv_path.open(encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            row = next(reader)
+        snap = result.snapshots[0]
+        assert float(row["elapsed_seconds"]) == snap.elapsed_seconds
+        assert float(row["requests_per_second"]) == snap.requests_per_second
+        assert float(row["latency_p50"]) == snap.latency_p50
+        assert float(row["latency_p99"]) == snap.latency_p99
+        assert int(row["total_requests"]) == snap.total_requests
+        assert int(row["total_errors"]) == snap.total_errors
 
     def test_empty_snapshots_produces_header_only(self, tmp_path: Path):
         result = _TestResult(
@@ -233,6 +283,30 @@ class TestExportHtml:
 
         content = html_path.read_text(encoding="utf-8")
         assert "test_scenario" in content
+
+    def test_contains_all_report_sections(self, tmp_path: Path):
+        result = _make_result()
+        html_path = tmp_path / "report.html"
+        export_html(result, html_path)
+
+        content = html_path.read_text(encoding="utf-8")
+        assert 'id="summary"' in content
+        assert 'id="throughput"' in content
+        assert 'id="concurrency"' in content
+        assert 'id="latency"' in content
+        assert 'id="errors"' in content
+        assert 'id="raw-data"' in content
+        assert "<details>" in content
+
+    def test_contains_theme_toggle(self, tmp_path: Path):
+        result = _make_result()
+        html_path = tmp_path / "report.html"
+        export_html(result, html_path)
+
+        content = html_path.read_text(encoding="utf-8")
+        assert "theme-toggle" in content
+        assert "toggleTheme" in content
+        assert 'data-theme="light"' in content
 
     def test_creates_parent_dirs(self, tmp_path: Path):
         result = _make_result()
