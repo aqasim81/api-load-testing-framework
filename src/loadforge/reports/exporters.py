@@ -46,7 +46,7 @@ def export_json(result: TestResult, output_path: Path) -> Path:
         The resolved path of the written JSON file.
     """
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    data = _result_to_dict(result)
+    data = cast("dict[str, object]", dataclasses.asdict(result))
     output_path.write_text(
         json.dumps(data, indent=2, ensure_ascii=False),
         encoding="utf-8",
@@ -120,18 +120,6 @@ def load_result(json_path: Path) -> TestResult:
 # ---------------------------------------------------------------------------
 # Serialization helpers
 # ---------------------------------------------------------------------------
-
-
-def _result_to_dict(result: TestResult) -> dict[str, object]:
-    """Convert a TestResult to a JSON-serializable dict.
-
-    Args:
-        result: TestResult to convert.
-
-    Returns:
-        Dict suitable for ``json.dumps()``.
-    """
-    return cast("dict[str, object]", dataclasses.asdict(result))
 
 
 def _dict_to_result(data: dict[str, object]) -> TestResult:

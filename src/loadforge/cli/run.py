@@ -443,7 +443,7 @@ def _generate_reports(
         try:
             export_html(result, report_path)
             console.print(f"[green]Report generated at {report_path}[/green]")
-        except Exception as exc:
+        except (OSError, ValueError, RuntimeError) as exc:
             console.print(f"[yellow]Report generation failed: {exc}[/yellow]")
     elif fmt == "csv":
         csv_path = output_dir / "report.csv"

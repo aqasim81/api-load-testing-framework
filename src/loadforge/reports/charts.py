@@ -204,22 +204,20 @@ def latency_histogram_chart(snapshots: list[MetricSnapshot]) -> go.Figure:
     if not snapshots:
         return _empty_figure("No latency data collected")
 
-    # Build weighted sample: repeat each snapshot's avg latency by its request count
-    values: list[float] = []
-    for s in snapshots:
-        count = max(1, s.total_requests)
-        values.extend([s.latency_avg] * count)
+    # Use per-snapshot average latencies directly — one value per snapshot
+    x_values = [s.latency_avg for s in snapshots if s.total_requests > 0]
 
-    if not values:
+    if not x_values:
         return _empty_figure("No latency data collected")
 
     fig = go.Figure()
     fig.add_trace(
         go.Histogram(
-            x=values,
+            x=x_values,
             name="Latency",
             marker_color=_COLORS["blue"],
             opacity=0.8,
+            nbinsx=50,
         )
     )
     fig.update_layout(

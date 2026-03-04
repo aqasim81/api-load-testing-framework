@@ -237,7 +237,7 @@
           <table class="data-table">
             <thead>
               <tr>
-                <th style="text-align:left">Elapsed (s)</th>
+                <th>Elapsed (s)</th>
                 <th>Users</th>
                 <th>RPS</th>
                 <th>Requests</th>
@@ -251,7 +251,7 @@
             <tbody>
               {% for s in snapshots %}
               <tr>
-                <td style="text-align:left">{{ "%.1f"|format(s.elapsed_seconds) }}</td>
+                <td>{{ "%.1f"|format(s.elapsed_seconds) }}</td>
                 <td>{{ s.active_users }}</td>
                 <td>{{ "%.1f"|format(s.requests_per_second) }}</td>
                 <td>{{ s.total_requests }}</td>
@@ -274,58 +274,34 @@
   </div>
 
   <script>
-    (function() {
-      var figures = {{ chart_figures_json }};
-      Object.keys(figures).forEach(function(divId) {
+    var LF_FIGURES = {{ chart_figures_json }};
+
+    function renderCharts(method) {
+      var theme = document.documentElement.dataset.theme;
+      var fontColor = theme === 'dark' ? '#e2e8f0' : '#1e293b';
+      Object.keys(LF_FIGURES).forEach(function(divId) {
         var el = document.getElementById(divId);
         if (!el) return;
-        var fig = JSON.parse(figures[divId]);
+        var fig = JSON.parse(LF_FIGURES[divId]);
         var layout = fig.layout || {};
-        var theme = document.documentElement.dataset.theme;
-        if (theme === 'dark') {
-          layout.paper_bgcolor = 'rgba(0,0,0,0)';
-          layout.plot_bgcolor = 'rgba(0,0,0,0)';
-          layout.font = {color: '#e2e8f0'};
-        } else {
-          layout.paper_bgcolor = 'rgba(0,0,0,0)';
-          layout.plot_bgcolor = 'rgba(0,0,0,0)';
-          layout.font = {color: '#1e293b'};
-        }
-        Plotly.newPlot(divId, fig.data, layout, {responsive: true, displayModeBar: false});
+        layout.paper_bgcolor = 'rgba(0,0,0,0)';
+        layout.plot_bgcolor = 'rgba(0,0,0,0)';
+        layout.font = {color: fontColor};
+        Plotly[method](divId, fig.data, layout, {responsive: true, displayModeBar: false});
       });
-    })();
+    }
 
     function toggleTheme() {
       var html = document.documentElement;
-      var next = html.dataset.theme === 'light' ? 'dark' : 'light';
-      html.dataset.theme = next;
-      localStorage.setItem('lf-theme', next);
-      /* Re-render charts with updated colors */
-      var figures = {{ chart_figures_json }};
-      Object.keys(figures).forEach(function(divId) {
-        var el = document.getElementById(divId);
-        if (!el) return;
-        var fig = JSON.parse(figures[divId]);
-        var layout = fig.layout || {};
-        if (next === 'dark') {
-          layout.paper_bgcolor = 'rgba(0,0,0,0)';
-          layout.plot_bgcolor = 'rgba(0,0,0,0)';
-          layout.font = {color: '#e2e8f0'};
-        } else {
-          layout.paper_bgcolor = 'rgba(0,0,0,0)';
-          layout.plot_bgcolor = 'rgba(0,0,0,0)';
-          layout.font = {color: '#1e293b'};
-        }
-        Plotly.react(divId, fig.data, layout, {responsive: true, displayModeBar: false});
-      });
+      html.dataset.theme = html.dataset.theme === 'light' ? 'dark' : 'light';
+      localStorage.setItem('lf-theme', html.dataset.theme);
+      renderCharts('react');
     }
 
-    /* Restore saved theme */
+    /* Restore saved theme before initial render */
     var saved = localStorage.getItem('lf-theme');
-    if (saved && saved !== document.documentElement.dataset.theme) {
-      document.documentElement.dataset.theme = saved;
-      toggleTheme(); toggleTheme(); /* Re-render with correct theme */
-    }
+    if (saved) document.documentElement.dataset.theme = saved;
+    renderCharts('newPlot');
   </script>
 </body>
 </html>
