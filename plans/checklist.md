@@ -119,16 +119,16 @@
 > [Detailed plan](./phases/phase-7-live-react-dashboard.md) |
 > Dependencies: Phase 4 (Aggregator), Phase 5 (CLI)
 
-- [ ] **Plan** — Review [phase plan](./phases/phase-7-live-react-dashboard.md) and the relevant sections of [implementation_plan.md](./implementation_plan.md)
-- [ ] **Review plan** — Confirm scope, file list, and acceptance criteria are clear; adjust if needed
-- [ ] **Implement (Python)** — Build FastAPI server and broadcaster
-- [ ] **Implement (React)** — Build all dashboard components
-- [ ] **Build dashboard** — Run `cd dashboard && npm run build` to output static assets
-- [ ] **Review implementation** — Code review: Python types/docstrings, TypeScript strict, WebSocket correctness
-- [ ] **Test** — Run `make validate` + `uv run pytest tests/integration/test_dashboard.py -v`
-- [ ] **Fix issues** — Address any failures from validation or review
-- [ ] **Update checklist** — Mark completed items above; update CLAUDE.md "Current Status"
-- [ ] **Ready for next phase** — All criteria met, proceed to Phase 8
+- [x] **Plan** — Review [phase plan](./phases/phase-7-live-react-dashboard.md) and the relevant sections of [implementation_plan.md](./implementation_plan.md)
+- [x] **Review plan** — Confirm scope, file list, and acceptance criteria are clear; adjust if needed
+- [x] **Implement (Python)** — Build FastAPI server and broadcaster
+- [x] **Implement (React)** — Build all dashboard components
+- [x] **Build dashboard** — Run `cd dashboard && npm run build` to output static assets
+- [x] **Review implementation** — Code review: Python types/docstrings, TypeScript strict, WebSocket correctness
+- [x] **Test** — Run `make validate` + `uv run pytest tests/integration/test_dashboard.py -v`
+- [x] **Fix issues** — Address any failures from validation or review
+- [x] **Update checklist** — Mark completed items above; update CLAUDE.md "Current Status"
+- [x] **Ready for next phase** — All criteria met, proceed to Phase 8
 
 ---
 
