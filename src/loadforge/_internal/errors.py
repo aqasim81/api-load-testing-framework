@@ -39,3 +39,12 @@ class EngineError(LoadForgeError):
         - Virtual user encounters an unrecoverable error.
         - Session lifecycle transition fails.
     """
+
+
+class DashboardError(LoadForgeError):
+    """Raised when the live dashboard encounters an error.
+
+    Examples:
+        - Dashboard server fails to start on the requested port.
+        - WebSocket broadcast fails unexpectedly.
+    """
