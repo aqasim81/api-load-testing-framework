@@ -4,11 +4,17 @@ All notable changes to LoadForge are documented here.
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-09-25
+
 ### Added
 - `LoadForgeError` and its subclasses (`ScenarioError`, `ConfigError`, `EngineError`,
   `DashboardError`) are now exported from `loadforge` (#4)
 
-### Changed
+### Fixed
+- Dashboard: the WebSocket subscribes to snapshots before accepting the handshake, so no early
+  snapshot is missed (#2)
+- `Coordinator.stop()` records a broken result pipe as a failed worker instead of swallowing every
+  error as "No result received"; unexpected errors propagate, and all queues are still closed (#10)
 - `LoadTestRunner.run()` raises `EngineError` when worker or metric aggregator shutdown fails after
   an otherwise successful run; during an already-failing run the shutdown failure is logged and the
   original error is kept. SIGINT/SIGTERM handlers are always restored (#12, #14)
