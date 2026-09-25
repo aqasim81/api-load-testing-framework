@@ -2,6 +2,12 @@
 
 All notable changes to LoadForge are documented here.
 
+## [Unreleased]
+
+### Added
+- `LoadForgeError` and its subclasses (`ScenarioError`, `ConfigError`, `EngineError`,
+  `DashboardError`) are now exported from `loadforge` (#4)
+
 ## [0.1.0] — 2025
 
 Initial release.

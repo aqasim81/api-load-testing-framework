@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from loadforge._internal.errors import LoadForgeError
+from loadforge import LoadForgeError
 from loadforge.metrics.models import EndpointMetrics, MetricSnapshot
 from loadforge.metrics.models import TestResult as _TestResult
 from loadforge.reports.exporters import export_csv, export_html, export_json, load_result

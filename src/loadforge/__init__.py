@@ -2,6 +2,13 @@
 
 from __future__ import annotations
 
+from loadforge._internal.errors import (
+    ConfigError,
+    DashboardError,
+    EngineError,
+    LoadForgeError,
+    ScenarioError,
+)
 from loadforge.dsl.decorators import scenario, setup, task, teardown
 from loadforge.dsl.http_client import HttpClient, RequestMetric
 from loadforge.engine.runner import LoadTestRunner
@@ -20,16 +27,21 @@ __version__ = "0.1.0"
 
 __all__ = [
     "CompositePattern",
+    "ConfigError",
     "ConstantPattern",
+    "DashboardError",
     "DiurnalPattern",
     "EndpointMetrics",
+    "EngineError",
     "HttpClient",
+    "LoadForgeError",
     "LoadPattern",
     "LoadTestRunner",
     "MetricSnapshot",
     "RampPattern",
     "ReportGenerator",
     "RequestMetric",
+    "ScenarioError",
     "SpikePattern",
     "StepPattern",
     "TestResult",

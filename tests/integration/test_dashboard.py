@@ -204,7 +204,7 @@ def test_dashboard_server_start_timeout() -> None:
     """DashboardServer raises DashboardError when startup times out."""
     from unittest.mock import MagicMock, patch
 
-    from loadforge._internal.errors import DashboardError
+    from loadforge import DashboardError
 
     port = _get_free_port()
     broadcaster = SnapshotBroadcaster()

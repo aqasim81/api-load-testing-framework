@@ -9,7 +9,7 @@ import pytest
 if TYPE_CHECKING:
     from pathlib import Path
 
-from loadforge._internal.errors import ScenarioError
+from loadforge import ScenarioError
 from loadforge.dsl.decorators import scenario, task
 from loadforge.dsl.loader import load_scenario
 from loadforge.dsl.scenario import (
