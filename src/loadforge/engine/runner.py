@@ -103,10 +103,10 @@ class LoadTestRunner:
             TestResult containing all snapshots and the final summary.
 
         Raises:
-            EngineError: If the test fails to execute, or if worker shutdown
-                fails after an otherwise successful run. A shutdown failure
-                during an already-failing run is logged and does not replace
-                the original error.
+            EngineError: If the test fails to execute, or if worker or metric
+                aggregator shutdown fails after an otherwise successful run. A
+                shutdown failure during an already-failing run is logged and
+                does not replace the original error.
         """
         setup_logging(level=self._log_level)
 
@@ -155,6 +155,7 @@ class LoadTestRunner:
 
         start_time = time.monotonic()
         shutdown_error: Exception | None = None
+        aggregator_error: Exception | None = None
 
         try:
             coordinator.start()
@@ -187,7 +188,7 @@ class LoadTestRunner:
             logger.exception("Load test failed")
             raise EngineError("Load test failed") from exc
         finally:
-            # Graceful shutdown; the rest of cleanup runs even if stop() raises.
+            # Graceful shutdown; the rest of cleanup runs even if a stop() raises.
             # A stop() failure is held here so it cannot mask an error already
             # propagating; it is raised below only if the run itself succeeded.
             try:
@@ -198,14 +199,22 @@ class LoadTestRunner:
                 shutdown_error = exc
                 worker_results = []
             finally:
-                aggregator.stop()
+                try:
+                    aggregator.stop()
+                # Isolation point: logged here, raised as EngineError below.
+                except Exception as exc:
+                    logger.exception("Metric aggregator shutdown failed")
+                    aggregator_error = exc
+                finally:
+                    # Restore signal handlers
+                    signal.signal(signal.SIGINT, original_sigint)
+                    signal.signal(signal.SIGTERM, original_sigterm)
 
-                # Restore signal handlers
-                signal.signal(signal.SIGINT, original_sigint)
-                signal.signal(signal.SIGTERM, original_sigterm)
-
+        # Worker shutdown failed first, so it wins over an aggregator failure.
         if shutdown_error is not None:
             raise EngineError("Worker shutdown failed") from shutdown_error
+        if aggregator_error is not None:
+            raise EngineError("Metric aggregator shutdown failed") from aggregator_error
 
         end_time = time.monotonic()
         total_duration = end_time - start_time
