@@ -8,6 +8,11 @@ All notable changes to LoadForge are documented here.
 - `DashboardServer` accepts an optional `host` argument; the default is still all interfaces
   (`0.0.0.0`) (#21)
 
+### Changed
+- HTML reports load the plotly.js version bundled with the installed plotly.py (now plotly 7 /
+  plotly.js 4.1.1) instead of a hardcoded plotly.js 2.35.2, which no longer matched the figure
+  JSON (#27)
+
 ### Removed
 - The unused `websockets` runtime dependency; the dashboard uses `wsproto` through uvicorn (#25)
 

@@ -113,6 +113,7 @@ def _build_context(
         "error_rate_pct": (summary.error_rate * 100) if summary else 0.0,
         "snapshots": result.snapshots,
         "chart_figures_json": json.dumps(figures),
+        "plotlyjs_version": charts.plotlyjs_version(),
         "generated_at": datetime.datetime.now(tz=datetime.UTC).strftime(
             "%Y-%m-%d %H:%M:%S UTC",
         ),

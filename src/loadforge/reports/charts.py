@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import plotly.graph_objects as go
+import plotly.offline
 
 if TYPE_CHECKING:
     from loadforge.metrics.models import EndpointMetrics, MetricSnapshot
@@ -390,3 +391,16 @@ def figure_to_json(fig: go.Figure) -> str:
     """
     result: str = fig.to_json()
     return result
+
+
+def plotlyjs_version() -> str:
+    """Return the plotly.js version that the installed plotly.py targets.
+
+    The HTML report loads this exact version from the CDN, so the embedded
+    figure JSON always matches the library that renders it.
+
+    Returns:
+        A version string such as ``"4.1.1"``.
+    """
+    version: str = plotly.offline.get_plotlyjs_version()
+    return version
