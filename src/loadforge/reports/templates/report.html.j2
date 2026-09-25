@@ -280,6 +280,10 @@
     function renderCharts(method) {
       var theme = document.documentElement.dataset.theme;
       var fontColor = theme === 'dark' ? '#e2e8f0' : '#1e293b';
+      /* plotly_white's near-white grid is harsh on the dark page; use the page's border token. */
+      var darkLineColor = theme === 'dark'
+        ? getComputedStyle(document.documentElement).getPropertyValue('--border').trim()
+        : '';
       Object.keys(LF_FIGURES).forEach(function(divId) {
         var el = document.getElementById(divId);
         if (!el) return;
@@ -288,6 +292,15 @@
         layout.paper_bgcolor = 'rgba(0,0,0,0)';
         layout.plot_bgcolor = 'rgba(0,0,0,0)';
         layout.font = {color: fontColor};
+        if (darkLineColor) {
+          Object.keys(layout).forEach(function(key) {
+            if (/^[xy]axis\d*$/.test(key)) {
+              layout[key].gridcolor = darkLineColor;
+              layout[key].zerolinecolor = darkLineColor;
+              layout[key].linecolor = darkLineColor;
+            }
+          });
+        }
         Plotly[method](divId, fig.data, layout, {responsive: true, displayModeBar: false});
       });
     }
