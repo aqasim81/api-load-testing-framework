@@ -40,3 +40,6 @@ validate: fmt-check lint typecheck test
 clean:
 	rm -rf htmlcov/ .coverage coverage.json .mypy_cache/ .pytest_cache/ .ruff_cache/
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+
+.PHONY: verify
+verify: validate ## Single "done" gate (starter-kit name for validate)
