@@ -41,7 +41,7 @@ dev = [
     "pytest-timeout>=2.3",
     "aioresponses>=0.7",
     "ruff>=0.9",
-    "mypy>=1.14",
+    "mypy>=2.0",
     "pre-commit>=4.0",
 ]
 
