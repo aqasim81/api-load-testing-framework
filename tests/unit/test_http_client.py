@@ -6,6 +6,7 @@ import aiohttp
 import pytest
 
 from loadforge.dsl.http_client import HttpClient, RequestMetric
+from tests.conftest import _get_free_port
 
 
 class TestRequestMetric:
@@ -203,7 +204,7 @@ class TestHttpClient:
         metrics: list[RequestMetric] = []
 
         async with HttpClient(
-            base_url="http://127.0.0.1:1",
+            base_url=f"http://127.0.0.1:{_get_free_port()}",
             metric_callback=metrics.append,
             timeout=1.0,
         ) as client:

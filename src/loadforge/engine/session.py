@@ -245,7 +245,8 @@ class TestSession:
                         await task_def.func(instance, client)
                     except asyncio.CancelledError:
                         raise
-                    except Exception:
+                    # Isolation point: a failing user task must not kill the VU.
+                    except Exception:  # noqa: BLE001
                         logger.debug(
                             "Task %s failed for user %d",
                             task_def.name,
@@ -264,7 +265,8 @@ class TestSession:
                 if self._scenario.teardown_func is not None:
                     try:
                         await self._scenario.teardown_func(instance, client)
-                    except Exception:
+                    # Isolation point: teardown failure is logged, never propagated.
+                    except Exception:  # noqa: BLE001
                         logger.warning(
                             "Teardown failed for user %d",
                             user_id,

@@ -9,6 +9,7 @@ from typer.testing import CliRunner
 
 from loadforge import __version__
 from loadforge.cli.app import app
+from tests.conftest import _get_free_port
 
 runner = CliRunner()
 
@@ -396,6 +397,8 @@ def test_run_with_dashboard_flag(scenario_file: Path):
             "--workers",
             "1",
             "--dashboard",
+            "--dashboard-port",
+            str(_get_free_port()),
             "--no-report",
         ],
     )

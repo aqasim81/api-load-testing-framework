@@ -167,7 +167,8 @@ class Coordinator:
             try:
                 result = result_q.get(timeout=2.0)
                 results.append(result)
-            except Exception:
+            # Isolation point: a missing worker result must not abort shutdown.
+            except Exception:  # noqa: BLE001
                 logger.warning("No result from worker %d", i)
                 results.append(
                     WorkerResult(
