@@ -8,6 +8,11 @@ All notable changes to LoadForge are documented here.
 - `LoadForgeError` and its subclasses (`ScenarioError`, `ConfigError`, `EngineError`,
   `DashboardError`) are now exported from `loadforge` (#4)
 
+### Changed
+- `LoadTestRunner.run()` raises `EngineError` when worker or metric aggregator shutdown fails after
+  an otherwise successful run; during an already-failing run the shutdown failure is logged and the
+  original error is kept. SIGINT/SIGTERM handlers are always restored (#12, #14)
+
 ## [0.1.0] — 2025
 
 Initial release.
