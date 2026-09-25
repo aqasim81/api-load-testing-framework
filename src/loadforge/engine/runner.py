@@ -183,13 +183,15 @@ class LoadTestRunner:
             logger.exception("Load test failed")
             raise EngineError("Load test failed") from exc
         finally:
-            # Graceful shutdown
-            worker_results = coordinator.stop(timeout=10.0)
-            aggregator.stop()
+            # Graceful shutdown; the rest of cleanup runs even if stop() raises
+            try:
+                worker_results = coordinator.stop(timeout=10.0)
+            finally:
+                aggregator.stop()
 
-            # Restore signal handlers
-            signal.signal(signal.SIGINT, original_sigint)
-            signal.signal(signal.SIGTERM, original_sigterm)
+                # Restore signal handlers
+                signal.signal(signal.SIGINT, original_sigint)
+                signal.signal(signal.SIGTERM, original_sigterm)
 
         end_time = time.monotonic()
         total_duration = end_time - start_time
