@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
+from loadforge import ConfigError
 from loadforge._internal.config import LoadForgeConfig, load_config
-from loadforge._internal.errors import ConfigError
 
 
 class TestLoadForgeConfig:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from loadforge._internal.errors import ConfigError
+from loadforge import ConfigError
 from loadforge.patterns.base import LoadPattern
 from loadforge.patterns.composite import CompositePattern
 from loadforge.patterns.constant import ConstantPattern

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from loadforge._internal.errors import ScenarioError
+from loadforge import ScenarioError
 from loadforge.dsl.decorators import scenario, setup, task, teardown
 from loadforge.dsl.scenario import ScenarioDefinition, registry
 
