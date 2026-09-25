@@ -91,6 +91,7 @@ select = [
     "ANN",   # flake8-annotations (enforce type hints)
     # Bug prevention
     "B",     # flake8-bugbear (mutable defaults, bare except)
+    "BLE",   # flake8-blind-except (broad except only at isolation points)
     "A",     # flake8-builtins (don't shadow builtins)
     "SIM",   # flake8-simplify
     "RET",   # flake8-return (inconsistent returns)
