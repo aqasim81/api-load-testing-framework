@@ -203,6 +203,7 @@ markers = [
     "integration: tests that use real I/O (aiohttp server, file system)",
     "e2e: end-to-end tests that invoke the CLI",
     "slow: tests that take > 5 seconds",
+    "allow_network: lift the loopback-only network guard (invariant 5) for one test",
 ]
 addopts = [
     "--strict-markers",
