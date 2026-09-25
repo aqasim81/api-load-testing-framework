@@ -4,6 +4,10 @@ All notable changes to LoadForge are documented here.
 
 ## [Unreleased]
 
+### Added
+- `DashboardServer` accepts an optional `host` argument; the default is still all interfaces
+  (`0.0.0.0`) (#21)
+
 ## [0.2.0] — 2026-09-25
 
 ### Added

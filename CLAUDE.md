@@ -88,6 +88,7 @@ uv run pytest tests/integration/ -v     # Integration tests
 - Async tests: `async def test_...` — pytest-asyncio auto mode handles it
 - Naming: `test_<function_name>_<scenario>`
 - Hardcoded ports forbidden — use `_get_free_port()` from `conftest.py`
+- Invariant 5 is enforced: a session-wide guard in `conftest.py` rejects non-loopback connects/binds, and `tests/unit/test_test_hygiene.py` rejects hardcoded ports. Bind test servers to `127.0.0.1` (e.g. `DashboardServer(..., host="127.0.0.1")`)
 
 ## Security
 
