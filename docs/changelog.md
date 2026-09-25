@@ -4,6 +4,8 @@ All notable changes to LoadForge are documented here.
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-09-25
+
 ### Added
 - `DashboardServer` accepts an optional `host` argument; the default is still all interfaces
   (`0.0.0.0`) (#21)
@@ -12,6 +14,10 @@ All notable changes to LoadForge are documented here.
 - HTML reports load the plotly.js version bundled with the installed plotly.py (now plotly 7 /
   plotly.js 4.1.1) instead of a hardcoded plotly.js 2.35.2, which no longer matched the figure
   JSON (#27)
+- Dependencies: rich 15, plotly 7 and starlette 1.x (through fastapi) are supported and locked,
+  along with the latest minor and patch releases of the rest (#17, #25, #27, #29)
+- Development: mypy 2, GitHub Actions on Node 24, and a test-suite guard that enforces
+  loopback-only networking and no hardcoded ports (invariant 5) (#19, #21, #23)
 
 ### Fixed
 - HTML report: chart grid, zero and axis lines use the page's border colour in the dark theme
