@@ -5,7 +5,10 @@ from __future__ import annotations
 import json
 import time
 
+import plotly.offline
+
 from loadforge.metrics.models import EndpointMetrics, MetricSnapshot
+from loadforge.metrics.models import TestResult as _TestResult
 from loadforge.reports.charts import (
     concurrency_chart,
     error_breakdown_chart,
@@ -14,8 +17,11 @@ from loadforge.reports.charts import (
     latency_bands_chart,
     latency_by_endpoint_chart,
     latency_histogram_chart,
+    plotlyjs_version,
     throughput_chart,
 )
+from loadforge.reports.generator import ReportGenerator
+from tests.conftest import make_snapshot
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -281,3 +287,22 @@ class TestFigureToJson:
         parsed = json.loads(result)
         assert "data" in parsed
         assert "layout" in parsed
+
+
+class TestPlotlyjsVersion:
+    def test_matches_installed_plotly(self):
+        assert plotlyjs_version() == plotly.offline.get_plotlyjs_version()
+
+    def test_report_loads_matching_plotlyjs_from_cdn(self):
+        snapshot = make_snapshot()
+        result = _TestResult(
+            scenario_name="cdn",
+            start_time=0.0,
+            end_time=10.0,
+            duration_seconds=10.0,
+            pattern_description="Constant(50)",
+            snapshots=[snapshot],
+            final_summary=snapshot,
+        )
+        html = ReportGenerator(result).render_html()
+        assert f"https://cdn.plot.ly/plotly-{plotlyjs_version()}.min.js" in html
