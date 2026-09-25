@@ -13,6 +13,10 @@ All notable changes to LoadForge are documented here.
   plotly.js 4.1.1) instead of a hardcoded plotly.js 2.35.2, which no longer matched the figure
   JSON (#27)
 
+### Fixed
+- HTML report: chart grid, zero and axis lines use the page's border colour in the dark theme
+  instead of Plotly's near-white light-theme grid (#31)
+
 ### Removed
 - The unused `websockets` runtime dependency; the dashboard uses `wsproto` through uvicorn (#25)
 
