@@ -108,13 +108,13 @@ uv run pytest tests/integration/ -v     # Integration tests
 
 `plans/implementation_plan.md` (architecture, risk register) | `plans/phases/` (phase details) | `plans/checklist.md` (progress) | `.github/workflows/ci.yml` (CI config)
 
-## Invariants (draft, 25 Sept 2026 — confirm or edit)
+## Invariants
 
 1. No blocking calls on async paths: no `time.sleep()`, no blocking I/O (use `asyncio.sleep`, `asyncio.to_thread`).
 2. `_internal/` is not public API; changes to the public API (`@scenario`, `@task`, CLI flags, report format) are deliberate and documented.
-3. Expected failures return result types; exceptions derive from `LoadForgeError`; no bare `except Exception` without re-raise.
+3. Custom exceptions derive from `LoadForgeError`; broad `except Exception` only at isolation points (worker task, teardown, coordinator), always logged.
 4. Zero `Any`, full annotations on public functions, `# type: ignore` always with an error code (mypy strict passes).
-5. Unit tests do no I/O or network and use free ports, never hardcoded ones.
+5. Tests make no external network calls; servers bind to loopback on a free port (`_get_free_port`), never a hardcoded one.
 6. No secrets in code or tests (fake credentials only).
 
 ## Workflow
