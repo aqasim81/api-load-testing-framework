@@ -8,6 +8,9 @@ All notable changes to LoadForge are documented here.
 - `DashboardServer` accepts an optional `host` argument; the default is still all interfaces
   (`0.0.0.0`) (#21)
 
+### Removed
+- The unused `websockets` runtime dependency; the dashboard uses `wsproto` through uvicorn (#25)
+
 ## [0.2.0] — 2026-09-25
 
 ### Added
