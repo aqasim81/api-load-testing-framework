@@ -15,8 +15,8 @@ from loadforge.engine.runner import LoadTestRunner
 from loadforge.patterns.constant import ConstantPattern
 
 
-class StopFailingCoordinator:
-    """Coordinator whose start() succeeds and whose stop() fails."""
+class SucceedingCoordinator:
+    """Coordinator whose start() and stop() both succeed."""
 
     def __init__(self, **_kwargs: object) -> None:
         self.metric_queues: list[object] = []
@@ -26,6 +26,13 @@ class StopFailingCoordinator:
 
     def scale_to(self, target_concurrency: int) -> None:
         return None
+
+    def stop(self, timeout: float = 10.0) -> list[object]:
+        return []
+
+
+class StopFailingCoordinator(SucceedingCoordinator):
+    """Coordinator whose start() succeeds and whose stop() fails."""
 
     def stop(self, timeout: float = 10.0) -> list[object]:
         msg = "stop failed"
@@ -59,11 +66,24 @@ class RecordingAggregator:
         self.stopped = True
 
 
-def _make_runner(monkeypatch: pytest.MonkeyPatch, coordinator_cls: type[object]) -> LoadTestRunner:
-    """Build a runner wired to the given fake coordinator and a recording aggregator."""
+class StopFailingAggregator(RecordingAggregator):
+    """Aggregator whose stop() records the call and then fails."""
+
+    def stop(self) -> None:
+        self.stopped = True
+        msg = "aggregator stop failed"
+        raise RuntimeError(msg)
+
+
+def _make_runner(
+    monkeypatch: pytest.MonkeyPatch,
+    coordinator_cls: type[object],
+    aggregator_cls: type[RecordingAggregator] = RecordingAggregator,
+) -> LoadTestRunner:
+    """Build a runner wired to the given fake coordinator and recording aggregator."""
     RecordingAggregator.instances.clear()
     monkeypatch.setattr(runner_module, "Coordinator", coordinator_cls)
-    monkeypatch.setattr(runner_module, "MetricAggregator", RecordingAggregator)
+    monkeypatch.setattr(runner_module, "MetricAggregator", aggregator_cls)
     monkeypatch.setattr(runner_module, "load_scenario", lambda _path: SimpleNamespace(name="fake"))
     monkeypatch.setattr(runner_module, "setup_logging", lambda level: None)
     return LoadTestRunner(
@@ -111,5 +131,60 @@ class TestLoadTestRunnerShutdown:
         assert str(exc_info.value.__cause__) == "start failed"
         assert "Worker shutdown failed" in caplog.text
         assert RecordingAggregator.instances[0].stopped is True
+        assert signal.getsignal(signal.SIGINT) is original_sigint
+        assert signal.getsignal(signal.SIGTERM) is original_sigterm
+
+    def test_run_wraps_aggregator_stop_failure_in_engine_error(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        runner = _make_runner(monkeypatch, SucceedingCoordinator, StopFailingAggregator)
+        original_sigint = signal.getsignal(signal.SIGINT)
+        original_sigterm = signal.getsignal(signal.SIGTERM)
+
+        with pytest.raises(EngineError, match="Metric aggregator shutdown failed") as exc_info:
+            runner.run()
+
+        assert isinstance(exc_info.value.__cause__, RuntimeError)
+        assert str(exc_info.value.__cause__) == "aggregator stop failed"
+        assert RecordingAggregator.instances[0].stopped is True
+        assert signal.getsignal(signal.SIGINT) is original_sigint
+        assert signal.getsignal(signal.SIGTERM) is original_sigterm
+
+    def test_run_keeps_original_error_when_aggregator_stop_also_raises(
+        self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        runner = _make_runner(monkeypatch, FailingCoordinator, StopFailingAggregator)
+        original_sigint = signal.getsignal(signal.SIGINT)
+        original_sigterm = signal.getsignal(signal.SIGTERM)
+
+        with (
+            caplog.at_level(logging.ERROR),
+            pytest.raises(EngineError, match="Load test failed") as exc_info,
+        ):
+            runner.run()
+
+        assert isinstance(exc_info.value.__cause__, RuntimeError)
+        assert str(exc_info.value.__cause__) == "start failed"
+        assert "Worker shutdown failed" in caplog.text
+        assert "Metric aggregator shutdown failed" in caplog.text
+        assert signal.getsignal(signal.SIGINT) is original_sigint
+        assert signal.getsignal(signal.SIGTERM) is original_sigterm
+
+    def test_run_keeps_worker_shutdown_error_when_aggregator_stop_also_raises(
+        self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        runner = _make_runner(monkeypatch, StopFailingCoordinator, StopFailingAggregator)
+        original_sigint = signal.getsignal(signal.SIGINT)
+        original_sigterm = signal.getsignal(signal.SIGTERM)
+
+        with (
+            caplog.at_level(logging.ERROR),
+            pytest.raises(EngineError, match="Worker shutdown failed") as exc_info,
+        ):
+            runner.run()
+
+        assert isinstance(exc_info.value.__cause__, RuntimeError)
+        assert str(exc_info.value.__cause__) == "stop failed"
+        assert "Metric aggregator shutdown failed" in caplog.text
         assert signal.getsignal(signal.SIGINT) is original_sigint
         assert signal.getsignal(signal.SIGTERM) is original_sigterm
