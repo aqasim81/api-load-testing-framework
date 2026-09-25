@@ -1,6 +1,6 @@
 [project]
 name = "loadforge"
-version = "0.2.0"
+version = "0.3.0"
 description = "Forge realistic load tests as Python code"
 readme = "README.md"
 license = { text = "MIT" }
