@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING
 import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
-from starlette.staticfiles import StaticFiles
+from fastapi.staticfiles import StaticFiles
 
 from loadforge._internal.errors import DashboardError
 from loadforge._internal.logging import get_logger
