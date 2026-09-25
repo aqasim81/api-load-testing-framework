@@ -27,6 +27,8 @@ if TYPE_CHECKING:
 logger = get_logger("dashboard.server")
 
 _STATIC_DIR = Path(__file__).parent / "static"
+# All interfaces, so the dashboard is reachable from other machines. Tests bind loopback.
+_DEFAULT_HOST = "0.0.0.0"  # noqa: S104
 _STARTUP_TIMEOUT_SECS = 5.0
 _STARTUP_POLL_INTERVAL = 0.1
 _SHUTDOWN_TIMEOUT_SECS = 5.0
@@ -88,6 +90,7 @@ class DashboardServer:
         app: FastAPI,
         broadcaster: SnapshotBroadcaster,
         port: int = 8089,
+        host: str | None = None,
     ) -> None:
         """Initialize the dashboard server.
 
@@ -95,12 +98,13 @@ class DashboardServer:
             app: The FastAPI application to serve.
             broadcaster: The snapshot broadcaster (loop reference will be set).
             port: Port to listen on.
+            host: Interface to bind. Defaults to all interfaces (``0.0.0.0``).
         """
         self.port = port
         self._broadcaster = broadcaster
         self._config = uvicorn.Config(
             app,
-            host="0.0.0.0",  # noqa: S104
+            host=host if host is not None else _DEFAULT_HOST,
             port=port,
             log_level="warning",
             access_log=False,
