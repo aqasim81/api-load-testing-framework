@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import time
 from typing import TYPE_CHECKING
 
@@ -45,6 +46,26 @@ async def test_health_endpoint(
         assert resp.status == 200
         data = await resp.json()
         assert data == {"status": "ok"}
+
+
+async def test_serves_built_frontend(
+    dashboard: tuple[DashboardServer, SnapshotBroadcaster, int],
+) -> None:
+    """The SPA index and its hashed assets are served with the right content types."""
+    _, _, port = dashboard
+    base = f"http://127.0.0.1:{port}"
+    async with aiohttp.ClientSession() as session:
+        async with session.get(f"{base}/") as resp:
+            assert resp.status == 200
+            assert resp.content_type == "text/html"
+            index = await resp.text()
+        assets = re.findall(r'(?:src|href)="(/assets/[^"]+\.(?:js|css))"', index)
+        assert {a.rsplit(".", 1)[1] for a in assets} == {"js", "css"}
+        for asset in assets:
+            async with session.get(f"{base}{asset}") as resp:
+                assert resp.status == 200, asset
+                expected = "text/css" if asset.endswith(".css") else "text/javascript"
+                assert resp.content_type == expected, asset
 
 
 async def test_websocket_connect_and_receive(
