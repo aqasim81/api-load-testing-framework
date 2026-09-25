@@ -51,9 +51,11 @@ def create_app(broadcaster: SnapshotBroadcaster) -> FastAPI:
     @app.websocket("/ws/metrics")
     async def ws_metrics(ws: WebSocket) -> None:
         """Stream live metric snapshots to a connected WebSocket client."""
-        await ws.accept()
+        # Subscribe before completing the handshake: once the client sees the
+        # connection as open, snapshots broadcast from that moment on must reach it.
         q = broadcaster.subscribe()
         try:
+            await ws.accept()
             while True:
                 msg = await q.get()
                 await ws.send_text(msg)

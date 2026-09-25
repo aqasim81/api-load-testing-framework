@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 from typing import TYPE_CHECKING
 
 import aiohttp
@@ -64,6 +65,34 @@ async def test_websocket_connect_and_receive(
         assert data["type"] == "snapshot"
         assert data["data"]["active_users"] == 50
         assert data["data"]["rps"] == 50.0
+
+
+async def test_snapshot_immediately_after_connect_is_delivered(
+    dashboard: tuple[DashboardServer, SnapshotBroadcaster, int],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Regression: the handler must subscribe before completing the handshake.
+
+    A slow ``subscribe`` widens the window that made CI flaky: if the server
+    accepted first, a snapshot broadcast right after ``ws_connect`` returned
+    was dropped because no client queue existed yet.
+    """
+    _, broadcaster, port = dashboard
+    original_subscribe = broadcaster.subscribe
+
+    def slow_subscribe() -> asyncio.Queue[str]:
+        time.sleep(0.3)  # runs on the server thread; simulates a slow runner
+        return original_subscribe()
+
+    monkeypatch.setattr(broadcaster, "subscribe", slow_subscribe)
+
+    async with (
+        aiohttp.ClientSession() as session,
+        session.ws_connect(f"http://localhost:{port}/ws/metrics") as ws,
+    ):
+        broadcaster.on_snapshot(make_snapshot())
+        msg = await asyncio.wait_for(ws.receive(), timeout=5.0)
+        assert json.loads(msg.data)["type"] == "snapshot"
 
 
 async def test_websocket_multiple_clients(
