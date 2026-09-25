@@ -45,6 +45,7 @@ Or write one directly:
 ```python
 from loadforge import HttpClient, scenario, task
 
+
 @scenario(name="My API", base_url="http://localhost:8080")
 class MyScenario:
     @task(weight=1)
