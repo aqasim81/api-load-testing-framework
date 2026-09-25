@@ -190,8 +190,8 @@ class Coordinator:
                     logger.warning("Result pipe broken for worker %d: %r", i, exc)
                     results.append(_failed_result(i, f"Result pipe broken: {exc!r}"))
         finally:
-            # Close queues independently so one failure neither leaves the rest
-            # open nor masks an error already propagating
+            # Close queues independently so an OSError from one close neither
+            # leaves the rest open nor masks an error already propagating
             _close_queues("command", self._command_queues)
             _close_queues("metric", self._metric_queues)
             _close_queues("result", self._result_queues)
