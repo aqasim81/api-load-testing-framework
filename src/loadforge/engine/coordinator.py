@@ -5,18 +5,26 @@ from __future__ import annotations
 import multiprocessing
 import multiprocessing.process
 import queue
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 from loadforge._internal.logging import get_logger
 from loadforge.engine.protocol import WorkerCommand, WorkerResult
 from loadforge.engine.worker import run_worker_process
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from multiprocessing import Queue as MpQueue
 
     from loadforge.dsl.http_client import RequestMetric
 
 logger = get_logger("engine.coordinator")
+
+
+class _Closable(Protocol):
+    """Anything with a ``close()`` method, such as a multiprocessing queue."""
+
+    def close(self) -> None:
+        """Release the object's resources."""
 
 
 class Coordinator:
@@ -153,7 +161,8 @@ class Coordinator:
 
         Raises:
             Exception: Any unexpected error while reading a result propagates
-                after all queues have been closed.
+                after every queue has had a close attempt. An ``OSError`` from
+                closing a queue is logged, not raised.
         """
         # Send stop commands
         for cmd_q in self._command_queues:
@@ -181,13 +190,28 @@ class Coordinator:
                     logger.warning("Result pipe broken for worker %d: %r", i, exc)
                     results.append(_failed_result(i, f"Result pipe broken: {exc!r}"))
         finally:
-            # Close queues
-            for q_list in (self._command_queues, self._metric_queues, self._result_queues):
-                for q in q_list:
-                    q.close()
+            # Close queues independently so an OSError from one close neither
+            # leaves the rest open nor masks an error already propagating
+            _close_queues("command", self._command_queues)
+            _close_queues("metric", self._metric_queues)
+            _close_queues("result", self._result_queues)
 
         logger.info("All %d workers stopped", self.num_workers)
         return results
+
+
+def _close_queues(kind: str, queues: Sequence[_Closable]) -> None:
+    """Close every queue, logging (not raising) an ``OSError`` from any one of them.
+
+    Args:
+        kind: Queue kind for the log message (``command``, ``metric`` or ``result``).
+        queues: Queues to close, in worker order.
+    """
+    for i, q in enumerate(queues):
+        try:
+            q.close()
+        except OSError as exc:
+            logger.warning("Failed to close %s queue %d: %r", kind, i, exc)
 
 
 def _failed_result(worker_id: int, message: str) -> WorkerResult:

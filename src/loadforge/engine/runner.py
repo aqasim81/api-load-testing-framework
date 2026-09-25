@@ -103,7 +103,10 @@ class LoadTestRunner:
             TestResult containing all snapshots and the final summary.
 
         Raises:
-            EngineError: If the test fails to execute.
+            EngineError: If the test fails to execute, or if worker shutdown
+                fails after an otherwise successful run. A shutdown failure
+                during an already-failing run is logged and does not replace
+                the original error.
         """
         setup_logging(level=self._log_level)
 
@@ -151,6 +154,7 @@ class LoadTestRunner:
         signal.signal(signal.SIGTERM, _signal_handler)
 
         start_time = time.monotonic()
+        shutdown_error: Exception | None = None
 
         try:
             coordinator.start()
@@ -183,15 +187,25 @@ class LoadTestRunner:
             logger.exception("Load test failed")
             raise EngineError("Load test failed") from exc
         finally:
-            # Graceful shutdown; the rest of cleanup runs even if stop() raises
+            # Graceful shutdown; the rest of cleanup runs even if stop() raises.
+            # A stop() failure is held here so it cannot mask an error already
+            # propagating; it is raised below only if the run itself succeeded.
             try:
                 worker_results = coordinator.stop(timeout=10.0)
+            # Isolation point: logged here, raised as EngineError below.
+            except Exception as exc:
+                logger.exception("Worker shutdown failed")
+                shutdown_error = exc
+                worker_results = []
             finally:
                 aggregator.stop()
 
                 # Restore signal handlers
                 signal.signal(signal.SIGINT, original_sigint)
                 signal.signal(signal.SIGTERM, original_sigterm)
+
+        if shutdown_error is not None:
+            raise EngineError("Worker shutdown failed") from shutdown_error
 
         end_time = time.monotonic()
         total_duration = end_time - start_time

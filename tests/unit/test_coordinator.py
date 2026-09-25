@@ -16,6 +16,7 @@ class FakeQueue:
     def __init__(self, get_outcome: object = None) -> None:
         self.items: list[object] = []
         self.closed = False
+        self.close_error: OSError | None = None
         self._get_outcome = get_outcome
 
     def put(self, item: object) -> None:
@@ -27,6 +28,8 @@ class FakeQueue:
         return self._get_outcome
 
     def close(self) -> None:
+        if self.close_error is not None:
+            raise self.close_error
         self.closed = True
 
 
@@ -120,6 +123,24 @@ class TestCoordinatorStop:
             coordinator.stop()
 
         assert all(q.closed for q in queues)
+
+    def test_stop_closes_remaining_queues_when_one_close_fails(self) -> None:
+        coordinator, queues = _make_coordinator([_ok(0), _ok(1)])
+        queues[0].close_error = OSError("close failed")
+
+        results = coordinator.stop()
+
+        assert results == [_ok(0), _ok(1)]
+        assert all(q.closed for q in queues[1:])
+
+    def test_stop_keeps_unexpected_error_when_close_also_fails(self) -> None:
+        coordinator, queues = _make_coordinator([RuntimeError("bug"), _ok(1)])
+        queues[0].close_error = OSError("close failed")
+
+        with pytest.raises(RuntimeError, match="bug"):
+            coordinator.stop()
+
+        assert all(q.closed for q in queues[1:])
 
     def test_stop_terminates_worker_that_does_not_exit(self) -> None:
         hung = FakeProcess("loadforge-worker-0", hangs=True)
