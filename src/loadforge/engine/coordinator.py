@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import multiprocessing
 import multiprocessing.process
+import queue
 from typing import TYPE_CHECKING
 
 from loadforge._internal.logging import get_logger
@@ -146,7 +147,13 @@ class Coordinator:
             timeout: Maximum seconds to wait for each worker to join.
 
         Returns:
-            List of WorkerResult from all workers.
+            List of WorkerResult from all workers, in worker order. A worker
+            whose result is missing or whose result pipe is broken gets a
+            ``success=False`` entry.
+
+        Raises:
+            Exception: Any unexpected error while reading a result propagates
+                after all queues have been closed.
         """
         # Send stop commands
         for cmd_q in self._command_queues:
@@ -162,28 +169,41 @@ class Coordinator:
                 p.terminate()
                 p.join(timeout=2.0)
 
-        # Collect results
-        for i, result_q in enumerate(self._result_queues):
-            try:
-                result = result_q.get(timeout=2.0)
-                results.append(result)
-            # Isolation point: a missing worker result must not abort shutdown.
-            except Exception:  # noqa: BLE001
-                logger.warning("No result from worker %d", i)
-                results.append(
-                    WorkerResult(
-                        worker_id=i,
-                        total_requests=0,
-                        error_count=0,
-                        success=False,
-                        error_message="No result received",
-                    )
-                )
-
-        # Close queues
-        for q_list in (self._command_queues, self._metric_queues, self._result_queues):
-            for q in q_list:
-                q.close()
+        try:
+            # Collect results
+            for i, result_q in enumerate(self._result_queues):
+                try:
+                    results.append(result_q.get(timeout=2.0))
+                except queue.Empty:
+                    logger.warning("No result from worker %d", i)
+                    results.append(_failed_result(i, "No result received"))
+                except (EOFError, OSError) as exc:
+                    logger.warning("Result pipe broken for worker %d: %r", i, exc)
+                    results.append(_failed_result(i, f"Result pipe broken: {exc!r}"))
+        finally:
+            # Close queues
+            for q_list in (self._command_queues, self._metric_queues, self._result_queues):
+                for q in q_list:
+                    q.close()
 
         logger.info("All %d workers stopped", self.num_workers)
         return results
+
+
+def _failed_result(worker_id: int, message: str) -> WorkerResult:
+    """Build the result recorded for a worker whose own result was not received.
+
+    Args:
+        worker_id: Identifier of the worker.
+        message: Why no result was received.
+
+    Returns:
+        A WorkerResult with zero counts and ``success=False``.
+    """
+    return WorkerResult(
+        worker_id=worker_id,
+        total_requests=0,
+        error_count=0,
+        success=False,
+        error_message=message,
+    )
