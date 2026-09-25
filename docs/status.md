@@ -1,6 +1,6 @@
 # Project Status
 
-**Version:** 0.1.0
+**Version:** 0.2.0 (released 2026-09-25)
 **Status:** All phases complete — ready for GitHub showcase and PyPI
 
 ## Phase Completion
@@ -20,7 +20,7 @@
 ## Quality Metrics
 
 - **Test coverage:** 93.61% (threshold: 80%)
-- **Unit tests:** 299 passing
+- **Unit tests:** 322 passing
 - **Type checking:** mypy strict, zero errors
 - **Linting:** ruff, zero violations
 - **Python versions:** 3.12, 3.13
