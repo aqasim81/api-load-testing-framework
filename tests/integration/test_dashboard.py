@@ -26,7 +26,7 @@ async def dashboard(
     port = _get_free_port()
     broadcaster = SnapshotBroadcaster()
     app = create_app(broadcaster)
-    server = DashboardServer(app, broadcaster, port)
+    server = DashboardServer(app, broadcaster, port, host="127.0.0.1")
     server.start()
     try:
         yield server, broadcaster, port
@@ -209,7 +209,7 @@ def test_dashboard_server_start_timeout() -> None:
     port = _get_free_port()
     broadcaster = SnapshotBroadcaster()
     app = create_app(broadcaster)
-    server = DashboardServer(app, broadcaster, port)
+    server = DashboardServer(app, broadcaster, port, host="127.0.0.1")
 
     # Replace the uvicorn server with a mock whose ``started`` is always
     # False.  The background thread will call mock.serve() which returns

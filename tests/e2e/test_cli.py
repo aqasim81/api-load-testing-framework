@@ -9,6 +9,7 @@ from typer.testing import CliRunner
 
 from loadforge import __version__
 from loadforge.cli.app import app
+from loadforge.dashboard import server as dashboard_server
 from tests.conftest import _get_free_port
 
 runner = CliRunner()
@@ -383,8 +384,9 @@ def test_dashboard_missing_result_json(tmp_path: Path):
 
 
 @pytest.mark.slow
-def test_run_with_dashboard_flag(scenario_file: Path):
+def test_run_with_dashboard_flag(scenario_file: Path, monkeypatch: pytest.MonkeyPatch):
     """--dashboard flag starts the live dashboard during the test."""
+    monkeypatch.setattr(dashboard_server, "_DEFAULT_HOST", "127.0.0.1")
     result = runner.invoke(
         app,
         [

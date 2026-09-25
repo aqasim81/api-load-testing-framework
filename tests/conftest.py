@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 import socket
 import threading
 from typing import TYPE_CHECKING
@@ -13,7 +14,7 @@ from aiohttp import web
 from loadforge.metrics.models import EndpointMetrics, MetricSnapshot
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncIterator, Iterator
+    from collections.abc import AsyncIterator, Callable, Iterator
     from pathlib import Path
 
 
@@ -90,9 +91,105 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 def _get_free_port() -> int:
     """Find an available port on localhost."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(("", 0))
+        s.bind(("127.0.0.1", 0))
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         return s.getsockname()[1]
+
+
+# =============================================================================
+# Network guard (invariant 5: loopback only)
+# =============================================================================
+
+_network_allowed = False
+
+
+def _is_loopback(host: object) -> bool:
+    """Return True if ``host`` names a loopback interface."""
+    if isinstance(host, bytes):
+        host = host.decode("ascii", errors="replace")
+    if not isinstance(host, str):
+        return False
+    if host.lower() == "localhost":
+        return True
+    try:
+        # Strip an IPv6 zone id such as "fe80::1%lo0".
+        return ipaddress.ip_address(host.split("%", 1)[0]).is_loopback
+    except ValueError:
+        return False
+
+
+def _reject_unless_loopback(host: object, target: object, action: str) -> None:
+    """Raise if ``host`` is not loopback while the guard is active."""
+    if _network_allowed or _is_loopback(host):
+        return
+    msg = (
+        f"Invariant 5: tests may only {action} loopback addresses, got {target!r}. "
+        "Bind servers to 127.0.0.1 and use _get_free_port()."
+    )
+    raise RuntimeError(msg)
+
+
+def _guard(original: Callable[..., object], action: str) -> Callable[..., object]:
+    """Wrap a socket method whose last positional argument is the address."""
+
+    def guarded(sock: socket.socket, *args: object) -> object:
+        if sock.family in (socket.AF_INET, socket.AF_INET6):
+            address = args[-1]
+            host = address[0] if isinstance(address, tuple) else address
+            _reject_unless_loopback(host, address, action)
+        return original(sock, *args)
+
+    return guarded
+
+
+def _guard_getaddrinfo(original: Callable[..., object]) -> Callable[..., object]:
+    """Wrap ``socket.getaddrinfo`` so only loopback names resolve (``None`` = passive)."""
+
+    def guarded(host: object, *args: object, **kwargs: object) -> object:
+        if host is not None:
+            _reject_unless_loopback(host, host, "resolve")
+        return original(host, *args, **kwargs)
+
+    return guarded
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _loopback_only_network() -> Iterator[None]:
+    """Reject non-loopback connects, binds, UDP sends and DNS lookups for the session.
+
+    Patches ``socket`` in the test process, so it covers asyncio, aiohttp,
+    uvicorn and server threads. Not covered: worker subprocesses (spawned, so they
+    never load this conftest) and connects made natively by uvloop, which the
+    test process does not install.
+    """
+    with pytest.MonkeyPatch.context() as mp:
+        for name, action in (
+            ("connect", "connect to"),
+            ("connect_ex", "connect to"),
+            ("sendto", "send to"),
+            ("bind", "bind to"),
+        ):
+            mp.setattr(socket.socket, name, _guard(getattr(socket.socket, name), action))
+        mp.setattr(socket, "getaddrinfo", _guard_getaddrinfo(socket.getaddrinfo))
+        yield
+
+
+@pytest.fixture(autouse=True)
+def _allow_network_marker(request: pytest.FixtureRequest) -> Iterator[None]:
+    """Lift the network guard for tests marked ``@pytest.mark.allow_network``.
+
+    Applies to the test body and function-scoped fixtures only; wider-scoped
+    fixtures are set up while the guard is still active.
+    """
+    global _network_allowed
+    if request.node.get_closest_marker("allow_network") is None:
+        yield
+        return
+    _network_allowed = True
+    try:
+        yield
+    finally:
+        _network_allowed = False
 
 
 # =============================================================================
